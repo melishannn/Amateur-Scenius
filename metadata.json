@@ -1,0 +1,8 @@
+{
+  "name": "Amateur Scenius",
+  "description": "Yazarlar ve meraklılar için fikirleri olgunlaştıran, amatör ruhu koruyan bir içerik üretim karargahı.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": []
+}

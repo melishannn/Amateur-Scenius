@@ -1,0 +1,127 @@
+@import "tailwindcss";
+@import url('https://cdn.jsdelivr.net/npm/geist@1.0.3/dist/fonts/geist-sans/style.css');
+@import url('https://cdn.jsdelivr.net/npm/geist@1.0.3/dist/fonts/geist-mono/style.css');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --md-sys-color-primary: #6A50A7;
+  --md-sys-color-on-primary: #FFFFFF;
+  --md-sys-color-primary-container: #EDE7F6;
+  --md-sys-color-error: #B3261E;
+  --md-sys-color-error-container: #F9DEDC;
+  --md-sys-color-surface: rgba(255,255,255,0.55);
+  --md-sys-color-surface-variant: rgba(205,180,219,0.15);
+  --md-sys-shape-corner-full: 9999px;
+  --md-sys-shape-corner-extra-large: 28px;
+  --md-sys-elevation-1: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --md-sys-elevation-2: 0 4px 16px rgba(205,180,219,0.2);
+  --md-sys-elevation-3: 0 8px 32px rgba(205,180,219,0.25);
+}
+
+@theme {
+  --font-sans: "Geist", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  --font-geist: "Geist", sans-serif;
+  --font-serif: "Playfair Display", "Georgia", "Times New Roman", serif;
+  --font-mono: "Geist Mono", "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  
+  --color-bg: #f8f9fa;
+  --color-surface: #ffffff;
+  --color-text: #2d3748;
+  --color-muted: #718096;
+  --color-border: rgba(255, 255, 255, 0.4);
+  --color-accent: #a2d2ff;
+  --color-accent-soft: rgba(162, 210, 255, 0.2); 
+  --color-green: #cdb4db;
+  --color-green-soft: rgba(205, 180, 219, 0.2);
+  --color-blue: #a2d2ff;
+  --color-blue-soft: #bde0fe;
+  --color-danger: #ffafcc;
+  --color-danger-soft: rgba(255, 175, 204, 0.2);
+
+  --animate-bounce-subtle: bounce-subtle 3s ease-in-out infinite;
+
+  @keyframes bounce-subtle {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+}
+
+@utility glass {
+  background-color: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+}
+
+@utility glass-card {
+  background-color: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.03);
+}
+
+@layer base {
+  body {
+    @apply bg-bg text-text font-sans antialiased;
+  }
+  h2, h3, .serif {
+    @apply font-serif;
+  }
+}
+
+::selection {
+  @apply bg-accent-soft text-accent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-border rounded-full hover:bg-muted transition-colors;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Tag view container — horizontal scroll fix */
+.tag-cloud-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.tag-cloud-scroll::-webkit-scrollbar { display: none; }
+
+/* Modal positioning — viewport overflow fix */
+.modal-container {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;     /* dikey ortala */
+  justify-content: center; /* yatay ortala */
+  padding: 16px;
+  z-index: 90;
+}
+
+/* Timeline overflow — long content break */
+.timeline-content {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+/* Detail panel — mobile height fix */
+.detail-panel {
+  height: 100dvh;  /* NOT vh — dvh dynamic viewport height */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
