@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { User, LogIn, Lock, Mail, Loader2, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { loginWithGoogle, registerWithEmail, loginWithEmail, resetPassword } from '../firebase';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface AuthGateProps {
   onLogin: () => void;
@@ -11,6 +12,7 @@ interface AuthGateProps {
 type AuthMode = 'signIn' | 'signUp' | 'forgotPassword';
 
 export default function AuthGate({ onLogin, onSkip }: AuthGateProps) {
+  const { t } = useLanguage();
   const [mode, setMode] = useState<AuthMode>('signIn');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,20 +22,19 @@ export default function AuthGate({ onLogin, onSkip }: AuthGateProps) {
 
   const handleError = (e: any) => {
     let message = e.message || 'Bir hata oluştu.';
-    // Turkish translations for common firebase auth errors
-    if (message.includes('auth/invalid-email')) message = 'Geçersiz e-posta adresi.';
-    else if (message.includes('auth/user-not-found') || message.includes('auth/invalid-credential')) message = 'E-posta veya şifre hatalı.';
-    else if (message.includes('auth/wrong-password')) message = 'E-posta veya şifre hatalı.';
-    else if (message.includes('auth/email-already-in-use')) message = 'Bu e-posta kullanımda.';
-    else if (message.includes('auth/weak-password')) message = 'Şifre en az 6 karakter olmalıdır.';
-    else if (message.includes('auth/operation-not-allowed')) message = 'E-posta ile giriş kapalı! Lütfen Firebase Konsolunda (Authentication -> Sign-in method) açın.';
+    if (message.includes('auth/invalid-email')) message = t('auth.err_email');
+    else if (message.includes('auth/user-not-found') || message.includes('auth/invalid-credential')) message = t('auth.err_cred');
+    else if (message.includes('auth/wrong-password')) message = t('auth.err_cred');
+    else if (message.includes('auth/email-already-in-use')) message = t('auth.err_in_use');
+    else if (message.includes('auth/weak-password')) message = t('auth.err_weak');
+    else if (message.includes('auth/operation-not-allowed')) message = t('auth.err_disabled');
     setError(message);
   };
 
   const handleEmailAction = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return setError('E-posta adresi girin.');
-    if (mode !== 'forgotPassword' && !password) return setError('Şifre girin.');
+    if (!email) return setError(t('auth.err_email'));
+    if (mode !== 'forgotPassword' && !password) return setError(t('auth.err_cred'));
 
     setError('');
     setMsg('');
@@ -46,7 +47,7 @@ export default function AuthGate({ onLogin, onSkip }: AuthGateProps) {
         await registerWithEmail(email, password);
       } else if (mode === 'forgotPassword') {
         await resetPassword(email);
-        setMsg('Şifre sıfırlama e-postası gönderildi. Spam/Gereksiz kutusunu kontrol etmeyi unutmayın!');
+        setMsg(t('auth.reset_sent'));
         setMode('signIn');
       }
     } catch (err) {
@@ -68,21 +69,21 @@ export default function AuthGate({ onLogin, onSkip }: AuthGateProps) {
             ✦
           </div>
           <div>
-            <div className="text-xl font-bold text-[#1a0f2e] tracking-tight">Amateur Scenius</div>
-            <div className="text-xs font-mono text-[#7a6090] tracking-widest uppercase">süreci düşün, ürünü değil</div>
+            <div className="text-xl font-bold text-[#1a0f2e] tracking-tight">{t('nav.title')}</div>
+            <div className="text-xs font-mono text-[#7a6090] tracking-widest uppercase">{t('auth.subtitle')}</div>
           </div>
         </div>
 
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-[#1a0f2e] mb-1">
-            {mode === 'signIn' && 'Tekrar Hoş Geldin!'}
-            {mode === 'signUp' && 'Kayıt Ol'}
-            {mode === 'forgotPassword' && 'Şifremi Unuttum'}
+            {mode === 'signIn' && t('auth.welcome')}
+            {mode === 'signUp' && t('auth.signup')}
+            {mode === 'forgotPassword' && t('auth.forgot')}
           </h2>
           <p className="text-xs text-[#7a6090]">
-            {mode === 'signIn' && 'Seni özlemiştik, devam edelim'}
-            {mode === 'signUp' && 'Notlarını kalıcı olarak saklamak için hesap oluştur'}
-            {mode === 'forgotPassword' && 'E-posta adresini gir, sıfırlama linki gönderelim'}
+            {mode === 'signIn' && t('auth.desc_sign_in')}
+            {mode === 'signUp' && t('auth.desc_sign_up')}
+            {mode === 'forgotPassword' && t('auth.desc_forgot')}
           </p>
         </div>
 
@@ -91,7 +92,7 @@ export default function AuthGate({ onLogin, onSkip }: AuthGateProps) {
 
         <form onSubmit={handleEmailAction} className="space-y-4 mb-6">
           <div>
-            <label className="text-xs font-bold text-[#1a0f2e] mb-1.5 ml-1 block opacity-80">E-posta Adresi</label>
+            <label className="text-xs font-bold text-[#1a0f2e] mb-1.5 ml-1 block opacity-80">{t('auth.email')}</label>
             <div className="relative">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7a6090]" />
               <input 
@@ -106,7 +107,7 @@ export default function AuthGate({ onLogin, onSkip }: AuthGateProps) {
 
           {mode !== 'forgotPassword' && (
             <div>
-              <label className="text-xs font-bold text-[#1a0f2e] mb-1.5 ml-1 block opacity-80">Şifre</label>
+              <label className="text-xs font-bold text-[#1a0f2e] mb-1.5 ml-1 block opacity-80">{t('auth.password')}</label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7a6090]" />
                 <input 
@@ -127,7 +128,7 @@ export default function AuthGate({ onLogin, onSkip }: AuthGateProps) {
                 onClick={() => { setMode('forgotPassword'); setError(''); setMsg(''); }}
                 className="text-xs font-semibold text-[#7a6090] hover:text-[#cdb4db] transition-colors"
               >
-                Şifremi Unuttum?
+                {t('auth.forgot_q')}
               </button>
             </div>
           )}
@@ -139,9 +140,9 @@ export default function AuthGate({ onLogin, onSkip }: AuthGateProps) {
               className="w-full bg-gradient-to-r from-[#b57bee] to-[#8dbff4] hover:opacity-90 text-white rounded-2xl py-3.5 font-bold text-sm shadow-[0_8px_20px_rgba(181,123,238,0.3)] transition-all flex items-center justify-center disabled:opacity-50"
             >
               {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {mode === 'signIn' && 'Giriş Yap'}
-              {mode === 'signUp' && 'Kayıt Ol'}
-              {mode === 'forgotPassword' && 'Bağlantı Gönder'}
+              {mode === 'signIn' && t('auth.welcome')}
+              {mode === 'signUp' && t('auth.signup')}
+              {mode === 'forgotPassword' && t('auth.send_link')}
             </button>
           </div>
         </form>
@@ -151,7 +152,7 @@ export default function AuthGate({ onLogin, onSkip }: AuthGateProps) {
             <div className="relative flex items-center py-2 mb-4">
               <div className="flex-grow border-t border-[#7a6090]/10"></div>
               <span className="flex-shrink-0 mx-4 text-xs text-[#7a6090] uppercase tracking-wider font-semibold">
-                veya şununla devam et
+                {t('auth.or')}
               </span>
               <div className="flex-grow border-t border-[#7a6090]/10"></div>
             </div>
@@ -178,26 +179,26 @@ export default function AuthGate({ onLogin, onSkip }: AuthGateProps) {
               onClick={() => { setMode('signIn'); setError(''); setMsg(''); }} 
               className="text-xs font-semibold text-[#7a6090] hover:text-[#1a0f2e] transition-colors flex items-center justify-center gap-1"
             >
-              <ArrowLeft className="w-3 h-3" /> Geri Dön
+              <ArrowLeft className="w-3 h-3" /> {t('auth.back')}
             </button>
           )}
 
           {mode === 'signIn' && (
             <p className="text-xs text-[#7a6090]">
-              Hesabın yok mu? <button onClick={() => { setMode('signUp'); setError(''); setMsg(''); }} className="font-bold text-[#b57bee] hover:underline">Kayıt Ol</button>
+              {t('auth.no_account')} <button onClick={() => { setMode('signUp'); setError(''); setMsg(''); }} className="font-bold text-[#b57bee] hover:underline">{t('auth.signup')}</button>
             </p>
           )}
           
           {mode === 'signUp' && (
             <p className="text-xs text-[#7a6090]">
-              Zaten hesabın var mı? <button onClick={() => { setMode('signIn'); setError(''); setMsg(''); }} className="font-bold text-[#b57bee] hover:underline">Giriş Yap</button>
+              {t('auth.has_account')} <button onClick={() => { setMode('signIn'); setError(''); setMsg(''); }} className="font-bold text-[#b57bee] hover:underline">{t('nav.login')}</button>
             </p>
           )}
 
           <div className="h-px w-full bg-[#7a6090]/10 my-1"></div>
 
           <button onClick={onSkip} className="text-xs text-[#7a6090] hover:text-[#1a0f2e] transition-colors font-semibold py-1">
-            Misafir olarak devam et →
+            {t('auth.guest')}
           </button>
         </div>
       </motion.div>

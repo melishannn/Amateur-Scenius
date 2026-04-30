@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { Post } from '../types';
 import { Sparkles, Trash2, CheckCircle2, ChevronRight, Share2, Image as ImageIcon, Mic, Quote, Wand2, Type, Music } from 'lucide-react';
-import { GoogleGenAI } from "@google/genai";
 
 interface WizardProps {
   addPost: (post: Post) => void;
@@ -97,6 +97,7 @@ const GUIDE_FIELDS = {
 } as const;
 
 export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, saveHemingway }: WizardProps) {
+  const { t } = useLanguage();
   const [step, setStep] = useState(0);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isTagsAiLoading, setIsTagsAiLoading] = useState(false);
@@ -126,19 +127,15 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         setIsAiSummarizingAudio(true);
         try {
-          const ai = getAI(); if (!ai) { setIsAiSummarizingAudio(false); return; }
           const reader = new FileReader();
           reader.readAsDataURL(audioBlob);
           reader.onloadend = async () => {
             const base64data = reader.result?.toString().split(',')[1];
             if (base64data) {
-              const r = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: [
+              const r = await fetchGemini('gemini-2.5-flash', [
                   "Ses dosyasındaki konuşmayı dinle ve anlatılanları tam olarak 4 cümle ile özetle. Başka hiçbir şey söyleme.",
                   { inlineData: { data: base64data, mimeType: 'audio/webm' } }
-                ]
-              });
+              ]);
               if (r.text) {
                 set('q1', r.text.trim());
               }
@@ -256,21 +253,46 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
     setFormData(prev => ({ ...prev, [key]: val }));
 
   // ─── AI FONKSİYONLARI ──────────────────────────────────────────────────────
-  const getAI = () => {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) { alert('Gemini API anahtarı bulunamadı.'); return null; }
-    return new GoogleGenAI({ apiKey });
+  const fetchGemini = async (model: string, contents: any, config?: any) => {
+    // Ücretli Gemini API bağımlılığını kaldırmak için simülasyon (Mock)
+    await new Promise(r => setTimeout(r, 1000));
+    const prompt = typeof contents === 'string' ? contents : JSON.stringify(contents);
+    
+    if (prompt.includes('hashtag öner')) {
+      return { text: 'fikir, not, gelişim' };
+    }
+    if (prompt.includes('Vampir Testi')) {
+      const isVampire = Math.random() > 0.5;
+      return { 
+        text: JSON.stringify({ 
+          isVampire, 
+          quote: isVampire ? "Paylaşmak için değil, göstermek için yapıyorsun." : "Paylaşım, kendi sürecinin belgeselidir.", 
+          author: "Simüle Austin Kleon", 
+          warnings: isVampire ? ["Sadece sonuca odaklanmışsın", "Etkileşim bağımlılığı seziyorum"] : []
+        }) 
+      };
+    }
+    if (prompt.includes('anahtar kelimeyi')) {
+      return { text: JSON.stringify(['süreç', 'öğrenme', 'hata', 'paylaşım', 'dikkat']) };
+    }
+    if (prompt.includes('Hangi rehber şablonuna daha uygun?')) {
+      return { text: 'oldVsNew' };
+    }
+    if (prompt.includes('rehber şablonuna göre')) {
+      return { text: '{\"q1\":\"Simüle edilmiş AI çıkarımı...\"}' };
+    }
+    if (prompt.includes('transkriptini çıkar') || prompt.includes('özetle')) {
+      return { text: 'Bugün harika şeyler denedim. Süreç beklediğimden daha zordu ama çok şey öğrendim.' };
+    }
+    
+    return { text: 'Simüle edilmiş yanıt.' };
   };
 
   const handleSuggestTags = async () => {
     if (!formData.idea) return;
     setIsTagsAiLoading(true);
     try {
-      const ai = getAI(); if (!ai) return;
-      const r = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Fikir: "${formData.idea}". 3-5 Türkçe hashtag öner. Sadece virgülle ayır, # koyma. Örn: yazılım, tasarım`
-      });
+      const r = await fetchGemini('gemini-3-flash-preview', `Fikir: "${formData.idea}". 3-5 Türkçe hashtag öner. Sadece virgülle ayır, # koyma. Örn: yazılım, tasarım`);
       if (r.text) set('tags', r.text.trim());
     } catch (e) { console.error(e); } finally { setIsTagsAiLoading(false); }
   };
@@ -278,12 +300,11 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
   const handleGenerateVampireQuote = async () => {
     setIsVampireAiLoading(true);
     try {
-      const ai = getAI(); if (!ai) return;
-      const r = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Konu: "${formData.idea}". Bu konuyla ilgili Austin Kleon / Steven Pressfield tarzı bir öğüt ve "vampir uyarısı" (yaratıcılığı öldüren şeyler) üret. JSON: { "quote": "...", "author": "...", "warnings": ["..."] }`,
-        config: { responseMimeType: 'application/json' }
-      });
+      const r = await fetchGemini(
+        'gemini-3-flash-preview',
+        `Konu: "${formData.idea}". Bu konuyla ilgili Austin Kleon / Steven Pressfield tarzı bir öğüt ve "vampir uyarısı" (yaratıcılığı öldüren şeyler) üret. JSON: { "quote": "...", "author": "...", "warnings": ["..."] }`,
+        { responseMimeType: 'application/json' }
+      );
       if (r.text) setVampireQuote(JSON.parse(r.text));
     } catch (e) { console.error(e); } finally { setIsVampireAiLoading(false); }
   };
@@ -291,17 +312,16 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
   const handleGenerateNextLine = async () => {
     setIsNextLineAiLoading(true);
     try {
-      const ai = getAI(); if (!ai) return;
-      const r = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Süreç: "${formData.polishedStory}". Hemingway Taktiği — yarım kalmış bir cümle öner. Yarın kaldığın yerden devam edebilmek için.
+      const r = await fetchGemini(
+        'gemini-3-flash-preview',
+        `Süreç: "${formData.polishedStory}". Hemingway Taktiği — yarım kalmış bir cümle öner. Yarın kaldığın yerden devam edebilmek için.
 
 MANDATORY INSTRUCTIONS:
 - You must output EXACTLY ONE sentence.
 - The sentence must be incomplete (ending with '...').
 - DO NOT INCLUDE ANY GREETINGS, CONVERSATION, OR COMMENTARY (e.g. no "Harika bir felsefe", no "İşte cümleniz", no quotes unless they are part of the sentence).
 - Example: "Kodun geri kalanını yazarken özellikle..."`
-      });
+      );
       let result = r.text ? r.text.trim() : '';
       if (result.includes('"')) {
         const matches = result.match(/"([^"]+)"/);
@@ -316,11 +336,10 @@ MANDATORY INSTRUCTIONS:
     if (!ctx) return;
     setIsDocAiLoading(true);
     try {
-      const ai = getAI(); if (!ai) return;
-      const r = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Ham notlar: "${ctx}". Başlangıç fikri: "${formData.idea}". Bu notları 1-2 cümlelik vurucu bir "Amatör Scenius" fikrine dönüştür.`
-      });
+      const r = await fetchGemini(
+        'gemini-3-flash-preview',
+        `Ham notlar: "${ctx}". Başlangıç fikri: "${formData.idea}". Bu notları 1-2 cümlelik vurucu bir "Amatör Scenius" fikrine dönüştür.`
+      );
       if (r.text) set('idea', r.text.trim());
     } catch (e) { console.error(e); } finally { setIsDocAiLoading(false); }
   };
@@ -328,11 +347,10 @@ MANDATORY INSTRUCTIONS:
   const handleAiPolish = async () => {
     setIsAiLoading(true);
     try {
-      const ai = getAI(); if (!ai) return;
       const currentText = formData.polishedStory || formData.q1;
-      const r = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `
+      const r = await fetchGemini(
+        'gemini-3-flash-preview',
+        `
           Sen bir "Amatör Scenius" rehberisin. Kullanıcının ham hikayesini Austin Kleon felsefesine uygun zenginleştir. 
           
           ÖNEMLİ: 
@@ -353,7 +371,7 @@ MANDATORY INSTRUCTIONS:
           4. Kısa, orta, ve uzun cümleleri ritmik bir şekilde kullan. Satır atlayarak ferah paragraflar yap.
           5. Okuyucuyu da denemeye davet eden bir bitiriş.
         `
-      });
+      );
       if (r.text) set('polishedStory', r.text.trim());
     } catch (e) { console.error(e); alert('AI hatası.'); } finally { setIsAiLoading(false); }
   };
@@ -439,20 +457,20 @@ MANDATORY INSTRUCTIONS:
       const type = formData.rehberType;
       let c = `<div class="glass border border-border p-8 rounded-[32px]"><div class="text-[10px] uppercase font-bold tracking-widest text-accent mb-6 flex items-center gap-2"><span>❖</span> MİNİ REHBER: ${tag} — ${type.toUpperCase()}</div>`;
       if (type === 'technical') {
-        c += `<div class="space-y-6"><div class="pt-2"><strong class="text-[10px] text-muted uppercase tracking-widest block mb-2">Araçlar & Malzemeler</strong><div class="text-sm">${g(formData.tools)}</div></div><div class="pt-4 border-t border-border/50"><strong class="text-[10px] text-muted uppercase tracking-widest block mb-2">Aşama 1: Hazırlık</strong><div class="text-sm">${g(formData.s1)}</div></div><div class="pt-4 border-t border-border/50"><strong class="text-[10px] text-muted uppercase tracking-widest block mb-2">Aşama 2: Uygulama</strong><div class="text-sm">${g(formData.s2)}</div></div><div class="pt-4 border-t border-border/50"><strong class="text-[10px] text-muted uppercase tracking-widest block mb-2">Sonuç Tablosu</strong><div class="text-sm">${g(formData.s3)}</div></div></div>`;
+        c += `<div class="space-y-6"><div class="pt-2"><strong class="text-[10px] text-muted uppercase tracking-widest block mb-2">${t('Araçlar & Malzemeler')}</strong><div class="text-sm">${g(formData.tools)}</div></div><div class="pt-4 border-t border-border/50"><strong class="text-[10px] text-muted uppercase tracking-widest block mb-2">${t('Aşama 1: Hazırlık')}</strong><div class="text-sm">${g(formData.s1)}</div></div><div class="pt-4 border-t border-border/50"><strong class="text-[10px] text-muted uppercase tracking-widest block mb-2">${t('Aşama 2: Uygulama')}</strong><div class="text-sm">${g(formData.s2)}</div></div><div class="pt-4 border-t border-border/50"><strong class="text-[10px] text-muted uppercase tracking-widest block mb-2">${t('Sonuç Tablosu')}</strong><div class="text-sm">${g(formData.s3)}</div></div></div>`;
       } else if (type === 'documentary') {
-        c += `<div class="space-y-6"><div class="pt-2"><strong class="text-[10px] text-muted uppercase tracking-widest block mb-2">Hedef</strong><div class="text-sm">${g(formData.target)}</div></div><div class="pt-4 border-t border-border/50"><strong class="text-[10px] text-muted uppercase tracking-widest block mb-2">Karşılaştığım Zorluklar</strong><div class="text-sm">${g(formData.difficulties)}</div></div><div class="pt-4 border-t border-border/50"><strong class="text-[10px] text-accent uppercase tracking-widest block mb-2">Çıkardığım Dersler</strong><div class="text-sm">${g(formData.lessons)}</div></div></div>`;
+        c += `<div class="space-y-6"><div class="pt-2"><strong class="text-[10px] text-muted uppercase tracking-widest block mb-2">${t('Hedef')}</strong><div class="text-sm">${g(formData.target)}</div></div><div class="pt-4 border-t border-border/50"><strong class="text-[10px] text-muted uppercase tracking-widest block mb-2">${t('Karşılaştığım Zorluklar')}</strong><div class="text-sm">${g(formData.difficulties)}</div></div><div class="pt-4 border-t border-border/50"><strong class="text-[10px] text-accent uppercase tracking-widest block mb-2">${t('Çıkardığım Dersler')}</strong><div class="text-sm">${g(formData.lessons)}</div></div></div>`;
       } else if (type === 'readingList') {
-        c += `<div class="space-y-6"><div class="pt-2"><strong class="text-[10px] text-muted uppercase tracking-widest block mb-2">Okuma Kaynakları</strong><div class="text-sm">${g(formData.sources)}</div></div><div class="pt-4 border-t border-border/50"><strong class="text-[10px] text-muted uppercase tracking-widest block mb-2">Ses ve Video</strong><div class="text-sm">${g(formData.multimedia)}</div></div><div class="pt-4 border-t border-border/50"><strong class="text-[10px] text-muted uppercase tracking-widest block mb-2">Sahiplenilecek Kişiler</strong><div class="text-sm">${g(formData.follows)}</div></div></div>`;
+        c += `<div class="space-y-6"><div class="pt-2"><strong class="text-[10px] text-muted uppercase tracking-widest block mb-2">${t('Okuma Kaynakları')}</strong><div class="text-sm">${g(formData.sources)}</div></div><div class="pt-4 border-t border-border/50"><strong class="text-[10px] text-muted uppercase tracking-widest block mb-2">${t('Ses ve Video')}</strong><div class="text-sm">${g(formData.multimedia)}</div></div><div class="pt-4 border-t border-border/50"><strong class="text-[10px] text-muted uppercase tracking-widest block mb-2">${t('Sahiplenilecek Kişiler')}</strong><div class="text-sm">${g(formData.follows)}</div></div></div>`;
       } else if (type === 'oldVsNew') {
-        c += `<div class="space-y-6"><div class="pt-2"><strong class="text-[10px] text-muted uppercase tracking-widest block mb-3">Eskiden Böyle Düşünürdüm</strong><div class="glass-card p-5 rounded-2xl border border-border/50 italic opacity-80 text-sm">${g(formData.oldWay)}</div></div><div class="pt-4 border-t border-border/50"><strong class="text-[10px] text-accent uppercase tracking-widest block mb-3">Artık Şunu Biliyorum</strong><div class="bg-accent/10 p-5 rounded-2xl border border-accent/20 font-medium text-sm">${g(formData.newWay)}</div></div></div>`;
+        c += `<div class="space-y-6"><div class="pt-2"><strong class="text-[10px] text-muted uppercase tracking-widest block mb-3">${t('Eskiden Böyle Düşünürdüm')}</strong><div class="glass-card p-5 rounded-2xl border border-border/50 italic opacity-80 text-sm">${g(formData.oldWay)}</div></div><div class="pt-4 border-t border-border/50"><strong class="text-[10px] text-accent uppercase tracking-widest block mb-3">${t('Artık Şunu Biliyorum')}</strong><div class="bg-accent/10 p-5 rounded-2xl border border-accent/20 font-medium text-sm">${g(formData.newWay)}</div></div></div>`;
       }
       c += `</div>`;
       return c;
     }
 
     const prefix = formData.isTeaching ? 'Yeni öğrendiğim bir şey: ' : 'Sürecimde şunları yaşadım: ';
-    const tone = formData.isAmateur ? '<div class="text-xs text-muted italic mb-4">Uzman değilim, deneme yanılma yapıyorum.</div>' : '';
+    const tone = formData.isAmateur ? `<div class="text-xs text-muted italic mb-4">${t('Uzman değilim, deneme yanılma yapıyorum.')}</div>` : '';
     const storyText = overrideStory !== undefined ? overrideStory : (formData.q1 || 'Bugün yeni bir şey denedim.');
     let attr = '';
     if (formData.attrName) {
@@ -519,22 +537,22 @@ MANDATORY INSTRUCTIONS:
     <div key="s0" className="space-y-8">
       {hemingwayChain && (
         <div className="bg-green-soft border border-green/20 py-5 pr-5 pl-0 ml-5 rounded-[24px] shadow-sm">
-          <div className="text-[10px] uppercase tracking-widest mb-2 font-bold opacity-60 text-green pl-5">HEMINGWAY TAKTİĞİ</div>
+          <div className="text-[10px] uppercase tracking-widest mb-2 font-bold opacity-60 text-green pl-5">{t('HEMINGWAY TAKTİĞİ')}</div>
           <p className="italic text-text text-left font-normal pl-5" style={{ fontFamily: 'Times New Roman, serif', fontSize: '13px' }}>"{hemingwayChain}"</p>
         </div>
       )}
-      <h2 className="serif text-4xl italic text-text mb-4">Fikir Defteri</h2>
+      <h2 className="serif text-4xl italic text-text mb-4">{t('Fikir Defteri')}</h2>
 
       {formData.rehberType && (
         <div className="glass-card border border-accent/20 p-6 rounded-[24px] space-y-3 shadow-sm border-l-4 border-l-accent">
           <div className="flex items-center gap-2">
             <Wand2 size={16} className="text-accent" />
-            <span className="text-[10px] font-bold text-accent uppercase tracking-widest">Örüntü (Pattern) Bulma</span>
+            <span className="text-[10px] font-bold text-accent uppercase tracking-widest">{t('Örüntü (Pattern) Bulma')}</span>
           </div>
           <p className="text-xs text-text/70 leading-relaxed italic">
-            Kleon der ki: "Bu içeriklere yukarıdan bak. Ortak nokta ne? Aynı dili mi kullanıyorlar, aynı hatayı mı çözüyorlar?"
+            {t('Kleon der ki: "Bu içeriklere yukarıdan bak. Ortak nokta ne? Aynı dili mi kullanıyorlar, aynı hatayı mı çözüyorlar?"')}
             <br /><br />
-            <strong>Görev:</strong> Bu rehberin ana fikrini, örüntüyü hissettirecek şekilde aşağıda güncelle.
+            <strong>{t('Görev:')}</strong> {t('Bu rehberin ana fikrini, örüntüyü hissettirecek şekilde aşağıda güncelle.')}
           </p>
         </div>
       )}
@@ -545,7 +563,7 @@ MANDATORY INSTRUCTIONS:
         </div>
       )}
       <div className="space-y-2">
-        <label className="text-[10px] font-bold tracking-widest text-muted uppercase ml-1">Bugünkü fikir veya gözlem</label>
+        <label className="text-[10px] font-bold tracking-widest text-muted uppercase ml-1">{t('Bugünkü fikir veya gözlem')}</label>
         <textarea
           value={formData.idea}
           onChange={e => set('idea', e.target.value)}
@@ -555,7 +573,7 @@ MANDATORY INSTRUCTIONS:
       </div>
       <div className="space-y-2">
         <div className="flex items-center justify-between ml-1">
-          <label className="text-[10px] font-bold tracking-widest text-muted uppercase">Etiketler</label>
+          <label className="text-[10px] font-bold tracking-widest text-muted uppercase">{t('Etiketler')}</label>
           <button
             onClick={handleSuggestTags}
             disabled={isTagsAiLoading || !formData.idea}
@@ -577,29 +595,29 @@ MANDATORY INSTRUCTIONS:
         onClick={() => { if (!formData.idea.trim()) return alert('Boş fikir kaydedilemez.'); nextStep(); }}
         className="w-full bg-accent text-text py-4 rounded-full font-bold text-sm flex items-center justify-center gap-2 shadow-lg active:translate-y-1 transition-all"
       >
-        Devam Et <ChevronRight size={18} />
+        {t('Devam Et')} <ChevronRight size={18} />
       </button>
     </div>,
 
     // STEP 1: 24 Saat Testi
     <div key="s1" className="space-y-8 text-center py-10">
-      <h2 className="serif text-4xl italic text-text">24 Saat Testi</h2>
+      <h2 className="serif text-4xl italic text-text">{t('24 Saat Testi')}</h2>
       <p className="text-lg text-muted serif italic max-w-sm mx-auto leading-relaxed">
-        Bu fikri 24 saatten uzun süredir düşünüyor musun?
+        {t('Bu fikri 24 saatten uzun süredir düşünüyor musun?')}
       </p>
       <div className="flex flex-col gap-4 max-w-xs mx-auto pt-6">
-        <button onClick={nextStep} className="w-full bg-accent text-text py-4 rounded-full font-bold text-sm shadow-lg">Evet, işleme al</button>
-        <button onClick={() => toCabinet('24 saat geçmedi — taslak saklandı.')} className="w-full bg-surface border border-border text-muted py-4 rounded-full text-sm font-semibold">Hayır, müzeye kaldır</button>
+        <button onClick={nextStep} className="w-full bg-accent text-text py-4 rounded-full font-bold text-sm shadow-lg">{t('Evet, işleme al')}</button>
+        <button onClick={() => toCabinet('24 saat geçmedi — taslak saklandı.')} className="w-full bg-surface border border-border text-muted py-4 rounded-full text-sm font-semibold">{t('Hayır, müzeye kaldır')}</button>
       </div>
     </div>,
 
     // STEP 2: Döküman & Artıklar
     <div key="s2" className="space-y-6">
-      <h2 className="serif text-4xl italic text-text">Döküman & Artıklar</h2>
+      <h2 className="serif text-4xl italic text-text">{t('Döküman & Artıklar')}</h2>
       <div className="flex flex-wrap gap-3 py-2">
         <button onClick={() => mediaInputRef.current?.click()} className="flex flex-col items-center justify-center w-24 h-24 bg-surface border-2 border-dashed border-border rounded-[24px] hover:border-accent transition-all group">
           <ImageIcon size={24} className="text-muted group-hover:text-accent" />
-          <span className="text-[10px] font-bold mt-2 opacity-60">GÖRSEL</span>
+          <span className="text-[10px] font-bold mt-2 opacity-60">{t('GÖRSEL')}</span>
           <input type="file" accept="image/*" ref={mediaInputRef} onChange={(e) => handleFileUpload(e, 'image')} className="hidden" />
         </button>
         <button onClick={() => {
@@ -607,14 +625,14 @@ MANDATORY INSTRUCTIONS:
           i.onchange = (e: any) => handleFileUpload(e, 'audio'); i.click();
         }} className="flex flex-col items-center justify-center w-24 h-24 bg-surface border-2 border-dashed border-border rounded-[24px] hover:border-accent transition-all group">
           <Mic size={24} className="text-muted group-hover:text-accent" />
-          <span className="text-[10px] font-bold mt-2 opacity-60">SES</span>
+          <span className="text-[10px] font-bold mt-2 opacity-60">{t('SES')}</span>
         </button>
         <button onClick={() => {
           const name = prompt('Belge adı?');
           if (name) setFormData(prev => ({ ...prev, media: [...prev.media, { type: 'text', url: '', name }] }));
         }} className="flex flex-col items-center justify-center w-24 h-24 bg-surface border-2 border-dashed border-border rounded-[24px] hover:border-accent transition-all group">
           <Type size={24} className="text-muted group-hover:text-accent" />
-          <span className="text-[10px] font-bold mt-2 opacity-60">YAZI</span>
+          <span className="text-[10px] font-bold mt-2 opacity-60">{t('YAZI')}</span>
         </button>
       </div>
       <div className="flex flex-wrap gap-4">
@@ -637,7 +655,7 @@ MANDATORY INSTRUCTIONS:
       </div>
       <div className="space-y-2 pt-4">
         <div className="flex items-center justify-between ml-1">
-          <label className="text-[10px] font-bold tracking-widest text-muted uppercase">Ham malzeme</label>
+          <label className="text-[10px] font-bold tracking-widest text-muted uppercase">{t('Ham malzeme')}</label>
           <button onClick={handleSummarizeDocs} disabled={isDocAiLoading || (!formData.doc && !formData.media.some(m => m.type === 'text'))} className="text-[10px] font-bold text-accent uppercase flex items-center gap-1 hover:opacity-70 disabled:opacity-30 transition-all border border-accent-soft rounded-full px-3 py-1">
             {isDocAiLoading ? <Wand2 size={10} className="animate-spin" /> : <Sparkles size={10} />} Fikri Özetle
           </button>
@@ -646,25 +664,25 @@ MANDATORY INSTRUCTIONS:
       </div>
       <div className="flex items-start gap-4 p-5 bg-bg border border-border rounded-[24px]">
         <input type="checkbox" id="amateur" checked={formData.isAmateur} onChange={e => set('isAmateur', e.target.checked)} className="mt-1" />
-        <label htmlFor="amateur" className="text-sm"><strong className="block">Amatör Modu</strong><span className="text-muted text-xs">Hata yapmaktan korkma. En ham halini paylaş.</span></label>
+        <label htmlFor="amateur" className="text-sm"><strong className="block">{t('Amatör Modu')}</strong><span className="text-muted text-xs">{t('Hata yapmaktan korkma. En ham halini paylaş.')}</span></label>
       </div>
       <div className="grid grid-cols-2 gap-4 pt-2">
-        <button onClick={nextStep} className="bg-accent text-text py-4 rounded-full font-bold text-sm shadow-md">Paylaşacağım →</button>
-        <button onClick={() => toCabinet('Taslak saklandı.')} className="bg-surface border border-border text-muted py-4 rounded-full text-sm font-semibold">Müzeye al</button>
+        <button onClick={nextStep} className="bg-accent text-text py-4 rounded-full font-bold text-sm shadow-md">{t('Paylaşacağım →')}</button>
+        <button onClick={() => toCabinet('Taslak saklandı.')} className="bg-surface border border-border text-muted py-4 rounded-full text-sm font-semibold">{t('Müzeye al')}</button>
       </div>
     </div>,
 
     // STEP 3: So What?
     <div key="s3" className="space-y-8">
-      <h2 className="serif text-4xl italic text-text">So What? Testi</h2>
+      <h2 className="serif text-4xl italic text-text">{t('So What? Testi')}</h2>
       <div className="bg-danger-soft border-l-4 border-danger p-6 rounded-[24px] text-sm text-danger leading-relaxed italic">
-        <strong>Sturgeon Yasası:</strong> Her şeyin %90'ı çöptür. Neyin iyi neyin kötü olduğunu hemen bilemeyebilirsin.
+        <strong>{t('Sturgeon Yasası:')}</strong> {t('Her şeyin %90\'ı çöptür. Neyin iyi neyin kötü olduğunu hemen bilemeyebilirsin.')}
       </div>
       <div className="flex flex-col gap-4 pt-6">
-        <button onClick={nextStep} className="w-full bg-accent text-text py-4 rounded-full font-bold text-sm shadow-lg">Bir kıvılcım — devam</button>
-        <button onClick={() => toCabinet('Emin değilsin — taslak saklandı.')} className="w-full bg-surface border border-border text-muted py-4 rounded-full text-sm font-semibold">Emin değilim</button>
+        <button onClick={nextStep} className="w-full bg-accent text-text py-4 rounded-full font-bold text-sm shadow-lg">{t('Bir kıvılcım — devam')}</button>
+        <button onClick={() => toCabinet('Emin değilsin — taslak saklandı.')} className="w-full bg-surface border border-border text-muted py-4 rounded-full text-sm font-semibold">{t('Emin değilim')}</button>
         <button onClick={() => { if (confirm('Emin misin?')) { reset(); alert('Silindi.'); } }} className="w-full border border-danger/30 text-danger py-3 rounded-full text-sm font-semibold flex items-center justify-center gap-2 hover:bg-danger-soft transition-colors">
-          <Trash2 size={16} /> Sadece gürültü — sil
+          <Trash2 size={16} /> {t('Sadece gürültü — sil')}
         </button>
       </div>
     </div>,
@@ -673,7 +691,7 @@ MANDATORY INSTRUCTIONS:
     <div key="s4" className="space-y-10">
       <div className="space-y-4">
         <button onClick={() => { reset(); window.dispatchEvent(new CustomEvent('exit-wizard')); }} className="flex items-center gap-2 text-[11px] font-bold text-muted uppercase tracking-widest border border-border px-4 py-2 rounded-xl hover:bg-bg transition-all">
-          ← İptal
+          {t('← İptal')}
         </button>
         <h2 className="text-xl font-bold text-text uppercase tracking-widest">
           {formData.rehberType === 'technical' && `Adım Adım Teknik Rehber — ${formData.tags}`}
@@ -690,7 +708,7 @@ MANDATORY INSTRUCTIONS:
         <div className="bg-accent/5 p-8 rounded-[32px] border border-accent/20 space-y-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-accent text-text rounded-lg flex items-center justify-center text-xs">💡</div>
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em] text-accent">Rehber Bağlamı</h4>
+            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em] text-accent">{t('Rehber Bağlamı')}</h4>
           </div>
           <div className="text-sm italic leading-relaxed text-text/80">
             {formData.rehberType === 'technical' && "Aaron Franklin'in barbekü videolarını yapmasındaki mantık nedir? Sadece tarif vermez — ateşi nasıl yaktığını, eti nasıl seçtiğini, sıcaklığı nasıl kontrol ettiğini gösterir. Sen de aynısını yap: okuyucu seni 'izleyerek' aynı sonuca ulaşabilmeli."}
@@ -747,7 +765,7 @@ MANDATORY INSTRUCTIONS:
             <div className="flex items-center gap-3 p-4 bg-bg rounded-[16px] border border-border">
               <span className="text-lg">🎬</span>
               <p className="text-[10px] text-muted leading-relaxed italic">
-                <strong className="text-text not-italic">DVD Ekstrası gibi düşün:</strong> Bunlar sınav soruları değil. İki cümle yeter — Kleon der ki "dünyanın senden istediği şey sadece kısa bir açıklamadır."
+                <strong className="text-text not-italic">{t('DVD Ekstrası gibi düşün:')}</strong> {t('Bunlar sınav soruları değil. İki cümle yeter — Kleon der ki "dünyanın senden istediği şey sadece kısa bir açıklamadır."')}
               </p>
             </div>
 
@@ -755,8 +773,8 @@ MANDATORY INSTRUCTIONS:
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted">Hikaye</span>
-                  <span className="text-[9px] text-muted opacity-40 hidden sm:inline">— geçmiş · şimdi · gelecek</span>
+                  <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted">{t('Hikaye')}</span>
+                  <span className="text-[9px] text-muted opacity-40 hidden sm:inline">{t('— geçmiş · şimdi · gelecek')}</span>
                 </div>
                 <button
                   onClick={isRecording ? stopVoiceRecord : startVoiceRecord}
@@ -770,11 +788,11 @@ MANDATORY INSTRUCTIONS:
                   }`}
                 >
                   {isAiSummarizingAudio ? (
-                    <><Wand2 size={12} className="animate-spin" /> Özetleniyor...</>
+                    <><Wand2 size={12} className="animate-spin" /> {t('Özetleniyor...')}</>
                   ) : isRecording ? (
-                    <><Mic size={12} /> Kaydı Bitir</>
+                    <><Mic size={12} /> {t('Kaydı Bitir')}</>
                   ) : (
-                    <><Mic size={12} /> Sesli Anlat (AI Özetlesin)</>
+                    <><Mic size={12} /> {t('Sesli Anlat (AI Özetlesin)')}</>
                   )}
                 </button>
               </div>
@@ -790,9 +808,9 @@ MANDATORY INSTRUCTIONS:
             {/* PERDE 2 — Müze Etiketi: sadece kaynak linki zorunlu */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted">Müze Etiketi <span className="opacity-40 normal-case font-normal">(isteğe bağlı)</span></span>
+                <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted">{t('Müze Etiketi')} <span className="opacity-40 normal-case font-normal">{t('(isteğe bağlı)')}</span></span>
                 {formData.attrLink && (
-                  <span className="text-[9px] text-green-600 font-bold">✓ link var</span>
+                  <span className="text-[9px] text-green-600 font-bold">{t('✓ link var')}</span>
                 )}
               </div>
               <div className="bg-surface border border-border rounded-[20px] overflow-hidden divide-y divide-border">
@@ -815,7 +833,7 @@ MANDATORY INSTRUCTIONS:
               </div>
               {formData.attrName && !formData.attrLink && (
                 <p className="text-[10px] text-danger font-medium pl-1">
-                  İsim verdin ama link yok — Kleon'a göre linksiz atıf internette neredeyse görünmez.
+                  {t('İsim verdin ama link yok — Kleon\'a göre linksiz atıf internette neredeyse görünmez.')}
                 </p>
               )}
             </div>
@@ -833,8 +851,8 @@ MANDATORY INSTRUCTIONS:
                 {formData.isAmateur ? '✓' : '🎭'}
               </div>
               <div>
-                <div className="text-[11px] font-bold text-text">Amatör Modu</div>
-                <div className="text-[10px] text-muted">Henüz uzman değilim, deneme yanılma yapıyorum</div>
+                <div className="text-[11px] font-bold text-text">{t('Amatör Modu')}</div>
+                <div className="text-[10px] text-muted">{t('Henüz uzman değilim, deneme yanılma yapıyorum')}</div>
               </div>
             </button>
           </div>
@@ -843,14 +861,14 @@ MANDATORY INSTRUCTIONS:
             onClick={() => { if (formData.attrName && !formData.attrLink) return alert('İsim girdin ama link yok. Lütfen kaynak linkini ekle.'); nextStep(); }}
             className="w-full bg-accent text-text py-4 rounded-full font-bold text-sm shadow-lg"
           >
-            Harmanla →
+            {t('Harmanla →')}
           </button>
         </>
       )}
 
       {formData.rehberType && (
         <button onClick={nextStep} className="w-full bg-text text-white py-4 rounded-xl font-bold text-sm tracking-widest uppercase hover:bg-black transition-all shadow-xl">
-          Önizleme →
+          {t('Önizleme →')}
         </button>
       )}
     </div>,
@@ -870,27 +888,27 @@ MANDATORY INSTRUCTIONS:
         <div className="relative group">
           <textarea value={formData.polishedStory} onChange={e => set('polishedStory', e.target.value)} className="w-full bg-surface p-8 pt-10 border border-border rounded-[32px] text-lg leading-relaxed text-text italic serif shadow-md min-h-[320px] focus:border-accent outline-none transition-all" placeholder="Hikaye oluşturuluyor..." />
           <div className="absolute top-4 left-8 flex items-center gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
-            <Type size={14} className="text-muted" /><span className="text-[9px] font-bold uppercase tracking-widest text-muted">DÜZENLENEBİLİR</span>
+            <Type size={14} className="text-muted" /><span className="text-[9px] font-bold uppercase tracking-widest text-muted">{t('DÜZENLENEBİLİR')}</span>
           </div>
           <button onClick={handleAiPolish} disabled={isAiLoading} className="absolute -top-3 -right-3 w-14 h-14 bg-accent text-text rounded-full flex flex-col items-center justify-center shadow-2xl hover:scale-110 transition-transform disabled:opacity-50 z-10 border-4 border-surface" title="AI ile Süsle">
             {isAiLoading ? <Wand2 size={24} className="animate-spin" /> : <Sparkles size={24} />}
-            <span className="text-[7px] font-bold mt-0.5">SÜSLE</span>
+            <span className="text-[7px] font-bold mt-0.5">{t('SÜSLE')}</span>
           </button>
         </div>
       )}
 
       {formData.rehberType ? (
         <div className="bg-text text-white p-6 rounded-[24px] text-xs leading-relaxed text-center">
-          <strong>Kleon der ki:</strong> "İyi bir fikir asla tam bitmez, sadece yayınlanır." Hatalarıyla kucakla. Bu senin <strong>stoğun</strong>.
+          <strong>{t('Kleon der ki:')}</strong> {t('"İyi bir fikir asla tam bitmez, sadece yayınlanır." Hatalarıyla kucakla. Bu senin')} <strong>{t('stoğun')}</strong>.
         </div>
       ) : (
         <div className="space-y-4 pt-6 text-center">
-          <label className="text-[10px] font-bold tracking-widest text-muted uppercase block">Yayın Platformu</label>
+          <label className="text-[10px] font-bold tracking-widest text-muted uppercase block">{t('Yayın Platformu')}</label>
           <select value={formData.platform} onChange={e => set('platform', e.target.value)} className="w-full p-4 bg-surface border border-border rounded-full text-sm text-center appearance-none shadow-sm font-semibold">
-            <option>Kendi Web Sitem — Karargah</option>
-            <option>X (Twitter) — Uydu</option>
-            <option>LinkedIn — Profesyonel Uydu</option>
-            <option>Substack — Bülten Köşesi</option>
+            <option>{t('Kendi Web Sitem — Karargah')}</option>
+            <option>{t('X (Twitter) — Uydu')}</option>
+            <option>{t('LinkedIn — Profesyonel Uydu')}</option>
+            <option>{t('Substack — Bülten Köşesi')}</option>
           </select>
         </div>
       )}
@@ -903,7 +921,7 @@ MANDATORY INSTRUCTIONS:
     // STEP 6: Son Kontroller & Vampir Testi
     <div key="s6" className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="serif text-4xl italic text-text">Vampir Testi</h2>
+        <h2 className="serif text-4xl italic text-text">{t('Vampir Testi')}</h2>
         {isVampireAiLoading && <Wand2 size={24} className="animate-spin text-accent" />}
       </div>
       <div className="grid grid-cols-1 gap-4 pt-4">
@@ -913,22 +931,22 @@ MANDATORY INSTRUCTIONS:
               <div className="flex items-center gap-3 mb-3"><Sparkles size={18} className="text-accent" /><div className="text-[10px] font-bold text-accent uppercase tracking-widest">GÜVENİLİR BİLGİ — {vampireQuote.author}</div></div>
               <p className="text-sm italic serif text-text leading-relaxed">"{vampireQuote.quote}"</p>
             </>
-          ) : isVampireAiLoading ? <div className="h-24 animate-pulse bg-surface/50 rounded-lg" /> : <div className="text-muted text-xs italic">Veri toplanıyor...</div>}
+          ) : isVampireAiLoading ? <div className="h-24 animate-pulse bg-surface/50 rounded-lg" /> : <div className="text-muted text-xs italic">{t('Veri toplanıyor...')}</div>}
         </div>
         <div className="bg-danger-soft p-8 rounded-[32px] border border-danger/10 shadow-sm">
-          <div className="flex items-center gap-3 mb-3 text-danger"><Share2 size={18} /><div className="text-[10px] font-bold uppercase tracking-widest">VAMPİR UYARISI</div></div>
+          <div className="flex items-center gap-3 mb-3 text-danger"><Share2 size={18} /><div className="text-[10px] font-bold uppercase tracking-widest">{t('VAMPİR UYARISI')}</div></div>
           {vampireQuote ? (
             <ul className="text-sm italic serif text-text leading-relaxed list-disc list-inside">{vampireQuote.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul>
           ) : isVampireAiLoading ? <div className="h-24 animate-pulse bg-surface/50 rounded-lg" /> : (
-            <p className="text-sm italic serif text-text leading-relaxed">Metriklerin kölesi olduklarında yaratıcılıkları öldü.</p>
+            <p className="text-sm italic serif text-text leading-relaxed">{t('Metriklerin kölesi olduklarında yaratıcılıkları öldü.')}</p>
           )}
         </div>
       </div>
       <div className="bg-text text-white p-8 rounded-[32px] text-sm leading-relaxed mt-6">
-        <strong>Mükemmeliyetçilik Bir Hapishanedir:</strong> Öleceksin. Bu yüzden bu kusurlu haliyle yayınla. Gerçek başarı sürekliliktedir.
+        <strong>{t('Mükemmeliyetçilik Bir Hapishanedir:')}</strong> {t('Öleceksin. Bu yüzden bu kusurlu haliyle yayınla. Gerçek başarı sürekliliktedir.')}
       </div>
       <button onClick={publish} className="w-full bg-accent text-text py-5 rounded-full font-bold text-lg shadow-2xl mt-6">
-        Gözünü kapat ve yayınla
+        {t('Gözünü kapat ve yayınla')}
       </button>
     </div>,
 
@@ -940,19 +958,19 @@ MANDATORY INSTRUCTIONS:
       </div>
       {formData.rehberType ? (
         <div className="bg-text text-white p-10 rounded-[48px] border shadow-2xl space-y-6">
-          <h3 className="text-xl font-bold uppercase tracking-[0.2em]">Kalıcı Bir Değer Yarattın</h3>
-          <p className="text-base italic leading-relaxed opacity-80 serif">"Fikirlerinizi stoklayın. Onları biriktirin, düzenleyin ve başkalarına fayda sağlayacak bir bütüne dönüştürün."</p>
-          <div className="pt-4 opacity-50 text-[10px] uppercase tracking-widest">— Austin Kleon, Show Your Work</div>
+          <h3 className="text-xl font-bold uppercase tracking-[0.2em]">{t('Kalıcı Bir Değer Yarattın')}</h3>
+          <p className="text-base italic leading-relaxed opacity-80 serif">{t('"Fikirlerinizi stoklayın. Onları biriktirin, düzenleyin ve başkalarına fayda sağlayacak bir bütüne dönüştürün."')}</p>
+          <div className="pt-4 opacity-50 text-[10px] uppercase tracking-widest">{t('— Austin Kleon, Show Your Work')}</div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-text text-white p-8 rounded-[32px] text-xs leading-relaxed text-left border shadow-2xl"><strong>Bugün bir iz bıraktın.</strong> Austin Kleon: "Başkalarının işlerini çalın, kendi stilinizi harmanlayın."</div>
-          <div className="bg-green-soft border border-green/20 p-8 rounded-[32px] text-xs text-green leading-relaxed text-left shadow-sm"><strong>Sabbatical Başladı:</strong> Cihazları kapat. Bir ağaca bak. Köpeğini gezdir.</div>
+          <div className="bg-text text-white p-8 rounded-[32px] text-xs leading-relaxed text-left border shadow-2xl"><strong>{t('Bugün bir iz bıraktın.')}</strong> {t('Austin Kleon: "Başkalarının işlerini çalın, kendi stilinizi harmanlayın."')}</div>
+          <div className="bg-green-soft border border-green/20 p-8 rounded-[32px] text-xs text-green leading-relaxed text-left shadow-sm"><strong>{t('Sabbatical Başladı:')}</strong> {t('Cihazları kapat. Bir ağaca bak. Köpeğini gezdir.')}</div>
         </div>
       )}
       <div className="space-y-4 py-10">
         <div className="flex items-center justify-between">
-          <label className="text-[10px] font-bold tracking-widest text-muted uppercase block">Hemingway Taktiği — yarın kaldığın yerden devam et:</label>
+          <label className="text-[10px] font-bold tracking-widest text-muted uppercase block">{t('Hemingway Taktiği — yarın kaldığın yerden devam et:')}</label>
           {isNextLineAiLoading && <Wand2 size={16} className="animate-spin text-accent" />}
         </div>
         <div className="relative">
@@ -961,7 +979,7 @@ MANDATORY INSTRUCTIONS:
         </div>
       </div>
       <button onClick={() => { saveHemingway(formData.nextLine); reset(); window.dispatchEvent(new CustomEvent('exit-wizard')); }} className="w-full bg-accent text-text py-5 rounded-full font-bold text-xl shadow-2xl">
-        Kaydet & Sabbatical'a çık
+        {t('Kaydet & Sabbatical\'a çık')}
       </button>
     </div>
   ];
@@ -993,7 +1011,7 @@ MANDATORY INSTRUCTIONS:
 
       {step > 0 && step < 7 && (
         <button onClick={prevStep} className="flex items-center gap-2 text-[10px] font-bold text-muted hover:text-accent uppercase tracking-[0.2em] transition-colors ml-2">
-          <ChevronRight size={14} className="rotate-180" /> Geri Dön
+          <ChevronRight size={14} className="rotate-180" /> {t('Geri Dön')}
         </button>
       )}
 

@@ -8,8 +8,10 @@ import AuthGate from './components/AuthGate';
 import { Brain, LogOut, User, LayoutDashboard, Archive, Radio, Database, Menu, X } from 'lucide-react';
 import { Post, AppState } from './types';
 import { motion, AnimatePresence } from 'motion/react';
+import { useLanguage } from './contexts/LanguageContext';
 
 export default function App() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('flow');
   const [user, setUser] = useState<{name: string, email: string, uid: string} | null>(null);
   const [skippedAuth, setSkippedAuth] = useState(false);
@@ -98,7 +100,7 @@ export default function App() {
   };
 
   const publishPost = (id: number) => {
-    if (confirm('Bu eseri yayınlamak istediğinize emin misiniz?')) {
+    if (confirm(t('app.confirm_publish'))) {
       setAppState((prev) => ({
         ...prev,
         posts: prev.posts.map(p => p.id === id ? { ...p, isPublished: true } : p)
@@ -118,7 +120,7 @@ export default function App() {
   };
 
   const clearProject = () => {
-    if (confirm('Tüm veriler silinecek. Emin misin?')) {
+    if (confirm(t('app.confirm_delete_all'))) {
       setAppState({
         posts: [],
         chain: '',
@@ -155,7 +157,7 @@ export default function App() {
   };
 
   const deleteTag = (tag: string) => {
-    if (confirm(`"${tag}" etiketine ait tüm eserler silinecek. Emin misin?`)) {
+    if (confirm(t('app.confirm_delete_tag', { tag }))) {
       setAppState((prev) => {
         const remainingPosts = prev.posts.filter(p => !p.tags.includes(tag));
         const remainingIds = remainingPosts.map(p => p.id);

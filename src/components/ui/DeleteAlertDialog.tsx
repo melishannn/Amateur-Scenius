@@ -1,6 +1,7 @@
 import * as AlertDialog from '@radix-ui/react-alert-dialog';
 import { Trash2 } from 'lucide-react';
 import { ReactNode } from 'react';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface DeleteAlertDialogProps {
   open: boolean;
@@ -12,6 +13,7 @@ interface DeleteAlertDialogProps {
 }
 
 export function DeleteAlertDialog({ open, onOpenChange, title, description, onConfirm, itemCount }: DeleteAlertDialogProps) {
+  const { t } = useLanguage();
   return (
     <AlertDialog.Root open={open} onOpenChange={onOpenChange}>
       <AlertDialog.Portal>
@@ -54,7 +56,7 @@ export function DeleteAlertDialog({ open, onOpenChange, title, description, onCo
                     fontWeight: 600
                   }}
                 >
-                  Vazgeç
+                  {t('dialog.cancel')}
                 </button>
               </AlertDialog.Cancel>
               <AlertDialog.Action asChild>
@@ -68,7 +70,7 @@ export function DeleteAlertDialog({ open, onOpenChange, title, description, onCo
                     fontWeight: 700
                   }}
                 >
-                  Sil
+                  {t('dialog.delete')}
                 </button>
               </AlertDialog.Action>
             </div>

@@ -1,5 +1,6 @@
-import { LayoutDashboard, Archive, Radio, Database, Brain, LogOut, User } from 'lucide-react';
+import { LayoutDashboard, Archive, Radio, Database, Brain, LogOut, User, Globe } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface NavigationProps {
   activeTab: string;
@@ -12,11 +13,13 @@ interface NavigationProps {
 }
 
 export default function Navigation({ activeTab, setActiveTab, user, login, logout, onToggleLofi, isLofiPlaying }: NavigationProps) {
+  const { t, lang, setLang } = useLanguage();
+
   const tabs = [
-    { id: 'flow', label: 'Akış', icon: LayoutDashboard },
-    { id: 'cabinet', label: 'Merak Kabinesi', icon: Archive },
-    { id: 'hub', label: 'Dünya Karargahı', icon: Radio },
-    { id: 'profile', label: 'Profil', icon: User },
+    { id: 'flow', label: t('nav.flow'), icon: LayoutDashboard },
+    { id: 'cabinet', label: t('nav.cabinet'), icon: Archive },
+    { id: 'hub', label: t('nav.hub'), icon: Radio },
+    { id: 'profile', label: t('nav.profile'), icon: User },
   ];
 
   return (
@@ -25,11 +28,11 @@ export default function Navigation({ activeTab, setActiveTab, user, login, logou
         <div className="flex items-center gap-3 text-accent mb-2">
           <Brain size={28} className="text-accent" />
           <div className="serif italic text-2xl text-text leading-none font-bold">
-            Amateur Scenius
+            {t('nav.title')}
           </div>
         </div>
         <div className="text-[10px] font-bold tracking-[0.3em] uppercase text-muted mb-1 opacity-60">
-          Müze Rehberi
+          {t('nav.subtitle')}
         </div>
       </div>
 
@@ -47,7 +50,7 @@ export default function Navigation({ activeTab, setActiveTab, user, login, logou
           </div>
         ) : (
           <button onClick={login} className="flex items-center gap-2 justify-center w-full glass-card border-accent text-accent hover:bg-accent hover:text-white transition-colors p-3 rounded-2xl text-xs font-bold tracking-wider uppercase border-2">
-             <User size={14} /> Giriş Yap
+             <User size={14} /> {t('nav.login')}
           </button>
         )}
       </div>
@@ -81,14 +84,22 @@ export default function Navigation({ activeTab, setActiveTab, user, login, logou
       </div>
 
       <div className="mt-auto pt-4 flex flex-col gap-3 shrink-0">
-        <button
-          onClick={onToggleLofi}
-          className={`flex items-center justify-center gap-2 p-3 rounded-2xl transition-all duration-300 text-xs font-bold uppercase tracking-widest border-2 ${
-            isLofiPlaying ? 'bg-[#1DB954] text-white border-[#1DB954]/20 shadow-[0_0_15px_rgba(29,185,84,0.4)]' : 'border-border text-muted hover:text-text hover:border-accent'
-          }`}
-        >
-          🎵 Lo-Fi {isLofiPlaying ? 'Kapat' : 'Oyna'}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setLang(lang === 'tr' ? 'en' : 'tr')}
+            className="flex-1 flex items-center justify-center gap-2 p-3 rounded-2xl transition-all duration-300 text-xs font-bold uppercase tracking-widest border-2 border-border text-muted hover:text-text hover:border-accent"
+          >
+            <Globe size={18} /> {lang === 'tr' ? 'EN' : 'TR'}
+          </button>
+          <button
+            onClick={onToggleLofi}
+            className={`flex-[2] flex items-center justify-center gap-2 p-3 rounded-2xl transition-all duration-300 text-[10px] sm:text-xs font-bold uppercase tracking-widest border-2 ${
+              isLofiPlaying ? 'bg-[#1DB954] text-white border-[#1DB954]/20 shadow-[0_0_15px_rgba(29,185,84,0.4)]' : 'border-border text-muted hover:text-text hover:border-accent'
+            }`}
+          >
+            {isLofiPlaying ? t('nav.music_stop') : t('nav.music_play')}
+          </button>
+        </div>
 
         {/* Spotify Player */}
         <motion.div
@@ -110,7 +121,7 @@ export default function Navigation({ activeTab, setActiveTab, user, login, logou
 
         {/* Footer / Credits */}
         <div className="text-[10px] text-center text-muted uppercase tracking-widest opacity-40 pb-4 md:pb-0">
-          Mühendisin Kitaplığı tarafından yapıldı
+          {t('nav.credits')}
         </div>
       </div>
     </nav>

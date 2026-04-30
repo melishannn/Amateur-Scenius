@@ -1,6 +1,7 @@
 import * as AlertDialog from '@radix-ui/react-alert-dialog';
 import { Tag } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface MoveTagDialogProps {
   open: boolean;
@@ -11,6 +12,7 @@ interface MoveTagDialogProps {
 }
 
 export function MoveTagDialog({ open, onOpenChange, currentTags, allTags, onConfirm }: MoveTagDialogProps) {
+  const { t } = useLanguage();
   const [selectedTag, setSelectedTag] = useState<string>('');
   const [newTag, setNewTag] = useState<string>('');
   const [mode, setMode] = useState<'select' | 'create'>('select');
@@ -59,10 +61,10 @@ export function MoveTagDialog({ open, onOpenChange, currentTags, allTags, onConf
             </div>
             <div>
               <AlertDialog.Title className="text-lg font-bold text-[#1a0f2e] font-sans">
-                Kategoriyi Değiştir
+                {t('move.title')}
               </AlertDialog.Title>
               <AlertDialog.Description className="text-xs text-muted mt-1 font-sans">
-                Bu fikri hangi etikete taşımak istiyorsunuz?
+                {t('move.desc')}
               </AlertDialog.Description>
             </div>
           </div>
@@ -72,13 +74,13 @@ export function MoveTagDialog({ open, onOpenChange, currentTags, allTags, onConf
               onClick={() => setMode('select')}
               className={`flex-1 py-1.5 text-xs font-bold rounded-full transition-colors ${mode === 'select' ? 'bg-white shadow-sm text-text' : 'text-muted hover:text-text'}`}
             >
-              Var Olanlar
+              {t('move.existing')}
             </button>
             <button
               onClick={() => setMode('create')}
               className={`flex-1 py-1.5 text-xs font-bold rounded-full transition-colors ${mode === 'create' ? 'bg-white shadow-sm text-text' : 'text-muted hover:text-text'}`}
             >
-              Yeni Oluştur
+              {t('move.new')}
             </button>
           </div>
 
@@ -102,17 +104,17 @@ export function MoveTagDialog({ open, onOpenChange, currentTags, allTags, onConf
                 </div>
               ) : (
                 <div className="text-center text-xs text-muted italic py-8">
-                  Taşınabilecek başka var olan etiket bulunamadı.
+                  {t('move.no_tags')}
                 </div>
               )
             ) : (
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-muted ml-4">YENİ ETİKET ADI</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-muted ml-4">{t('move.new_label')}</label>
                 <input
                   type="text"
                   value={newTag}
                   onChange={(e) => setNewTag(e.target.value)}
-                  placeholder="örn: ilham-panosu"
+                  placeholder={t('move.new_ph')}
                   className="w-full bg-surface border border-border px-4 py-3 text-sm rounded-xl outline-none focus:border-[#4A72FF] transition-colors"
                   autoFocus
                 />
@@ -130,7 +132,7 @@ export function MoveTagDialog({ open, onOpenChange, currentTags, allTags, onConf
                   color: '#3d2960',
                 }}
               >
-                Vazgeç
+                {t('dialog.cancel')}
               </button>
             </AlertDialog.Cancel>
             <AlertDialog.Action asChild>
@@ -144,7 +146,7 @@ export function MoveTagDialog({ open, onOpenChange, currentTags, allTags, onConf
                   border: 'none',
                 }}
               >
-                Taşı
+                {t('dialog.move')}
               </button>
             </AlertDialog.Action>
           </div>
