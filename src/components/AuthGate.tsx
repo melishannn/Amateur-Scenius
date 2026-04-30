@@ -76,12 +76,12 @@ export default function AuthGate({ onLogin, onSkip }: AuthGateProps) {
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-[#1a0f2e] mb-1">
             {mode === 'signIn' && 'Tekrar Hoş Geldin!'}
-            {mode === 'signUp' && 'Ücretsiz Başla'}
+            {mode === 'signUp' && 'Kayıt Ol'}
             {mode === 'forgotPassword' && 'Şifremi Unuttum'}
           </h2>
           <p className="text-xs text-[#7a6090]">
             {mode === 'signIn' && 'Seni özlemiştik, devam edelim'}
-            {mode === 'signUp' && 'Sonsuza dek ücretsiz, kart gerektirmez'}
+            {mode === 'signUp' && 'Notlarını kalıcı olarak saklamak için hesap oluştur'}
             {mode === 'forgotPassword' && 'E-posta adresini gir, sıfırlama linki gönderelim'}
           </p>
         </div>

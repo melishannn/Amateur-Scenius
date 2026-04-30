@@ -16,6 +16,7 @@ interface CabinetProps {
   deleteTag: (tag: string) => void;
   publishPost: (id: number) => void;
   updatePostTags: (id: number, newTags: string[]) => void;
+  archivePostsByTag: (tag: string) => void;
 }
 
 // ─── ŞABLON TANIM ────────────────────────────────────────────────────────────
@@ -105,12 +106,13 @@ type DeleteTarget = {
 };
 
 // ─── ANA COMPONENT ────────────────────────────────────────────────────────────
-export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, addPost, deletePost, deleteTag, publishPost, updatePostTags }: CabinetProps) {
+export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, addPost, deletePost, deleteTag, publishPost, updatePostTags, archivePostsByTag }: CabinetProps) {
   const [filter, setFilter] = useState<'all' | 'starred' | 'draft' | 'published'>('all');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
   const [selectedItemIds, setSelectedItemIds] = useState<number[]>([]);
   const [tagSearch, setTagSearch] = useState('');
+  const [showStockAlertForTag, setShowStockAlertForTag] = useState<string | null>(null);
 
   // ─── Dialog State ───
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
@@ -164,6 +166,66 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
     answers: string[];
   } | null>(null);
 
+  // ─── STOK BİRİKTİ SİHİRBAZI (AUSTIN KLEON STİLİ) ────────────────────────────
+  const [stockWizard, setStockWizard] = useState<{
+    tag: string;
+    step: number;
+    selectedPostIds: number[];
+    approvedKeywords: string[];
+    suggestedTemplate: TemplateKey;
+    answers: string[];
+    isFormReferenced?: boolean;
+  } | null>(null);
+
+  const stopWords = ['ve','ile','bu','bir','da','de','den','dan', 'için','ama','çok','ben','biz','şu','ne','ki','ya','mi', 'daha','olan','gibi','kadar','sonra','önce','her', 'vardı', 'yaptım', 'ettim', 'olan'];
+  
+  const findCommonWords = (postIds: number[]) => {
+    const selectedPosts = posts.filter(p => postIds.includes(p.id));
+    const wordMap: Record<string, number> = {};
+    selectedPosts.forEach(post => {
+      const text = post.content.replace(/<[^>]*>/g, '').toLowerCase();
+      const words = text.split(/\s+/).filter(w => w.length > 3 && !stopWords.includes(w));
+      const unique = Array.from(new Set(words));
+      unique.forEach(word => {
+        if (!wordMap[word]) wordMap[word] = 0;
+        wordMap[word]++;
+      });
+    });
+    return Object.entries(wordMap)
+      .filter(([_, count]) => count >= 2)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([word]) => word);
+  };
+
+  const suggestTemplate = (keywords: string[]) => {
+    const scores: Record<TemplateKey, number> = { technical: 0, documentary: 0, readingList: 0, oldVsNew: 0 };
+    const signals: Record<TemplateKey, string[]> = {
+      technical: ['başlangıç','kurulum','araç','adım','aşama','kurdum','yaptım', 'kurmak', 'nasıl'],
+      documentary: ['hata','zorlandım','çuvalladım','problem','sorun','çözdüm', 'deneyim', 'süreç'],
+      readingList: ['kitap','kaynak','öğrendim','link','okudum','izledim', 'yazı', 'not'],
+      oldVsNew: ['eskiden','şimdi','değişti','artık','önce','sonra', 'fark', 'geldi']
+    };
+    keywords.forEach(kw => {
+      Object.entries(signals).forEach(([type, words]) => {
+        if (words.some(w => kw.includes(w) || w.includes(kw))) scores[type as TemplateKey]++;
+      });
+    });
+    return (Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0] as TemplateKey);
+  };
+
+  const openStockWizard = (tag: string) => {
+    const tagPosts = groups[tag] || [];
+    setStockWizard({
+      tag,
+      step: 0,
+      selectedPostIds: tagPosts.map(p => p.id), // Varsayılan hepsi seçili
+      approvedKeywords: [],
+      suggestedTemplate: 'technical',
+      answers: []
+    });
+  };
+
   const filteredPosts = posts.filter(p => {
     if (filter === 'starred') return stars.includes(p.id);
     if (filter === 'draft') return !p.isPublished;
@@ -174,10 +236,13 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
   const STOCK_TARGET = 10;
   const groups: Record<string, Post[]> = {};
 
-  filteredPosts.forEach(p => p.tags.forEach(t => {
-    if (!groups[t]) groups[t] = [];
-    groups[t].push(p);
-  }));
+  filteredPosts.forEach(p => {
+    if (p.isArchived) return;
+    p.tags.forEach(t => {
+      if (!groups[t]) groups[t] = [];
+      groups[t].push(p);
+    });
+  });
 
   const getTagIcon = (tag: string) => {
     const icons: Record<string, string> = {
@@ -339,24 +404,56 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
             <div className="flex gap-2">
               {allTags
                 .filter(t => t.toLowerCase().includes(tagSearch.toLowerCase()))
-                .map(tag => (
-                  <button
-                    key={tag}
-                    onClick={() => setSelectedTag(tag === selectedTag ? null : tag)}
-                    className={`
-                      px-4 py-2 rounded-xl text-[9px] font-extrabold uppercase tracking-widest border whitespace-nowrap transition-all relative overflow-hidden group
-                      ${selectedTag === tag
-                        ? 'bg-text text-bg border-text shadow-md'
-                        : 'bg-surface/50 text-muted border-border hover:border-accent hover:text-accent'}
-                    `}
-                  >
-                    <span className="relative z-10">{tag}</span>
-                    <div
-                      className="absolute bottom-0 left-0 h-1 bg-accent/20 group-hover:bg-accent/40 transition-all"
-                      style={{ width: `${Math.min((groups[tag]?.length ?? 0) / STOCK_TARGET * 100, 100)}%` }}
-                    />
-                  </button>
-                ))}
+                .map(tag => {
+                  const tagPostsCount = groups[tag]?.length ?? 0;
+                  const hasBucketAlert = tagPostsCount >= 3 && tagPostsCount < STOCK_TARGET;
+                  const hasMilestoneAlert = tagPostsCount >= STOCK_TARGET;
+
+                  return (
+                    <div key={tag} className="relative group/tag">
+                      <button
+                        onClick={() => setSelectedTag(tag === selectedTag ? null : tag)}
+                        className={`
+                          px-4 py-2 rounded-xl text-[9px] font-extrabold uppercase tracking-widest border whitespace-nowrap transition-all relative overflow-hidden h-full flex items-center gap-2
+                          ${selectedTag === tag
+                            ? 'bg-text text-bg border-text shadow-md'
+                            : 'bg-surface/50 text-muted border-border hover:border-accent hover:text-accent'}
+                        `}
+                      >
+                        <span className="relative z-10">{tag}</span>
+                        {(hasBucketAlert || hasMilestoneAlert) && (
+                          <div 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedTag(tag);
+                              setShowStockAlertForTag(tag === showStockAlertForTag ? null : tag);
+                            }}
+                            className="relative z-20 p-1 -m-1 hover:bg-black/5 rounded-full transition-colors cursor-pointer group/alert"
+                          >
+                            <AlertTriangle 
+                              size={12} 
+                              className={`${hasMilestoneAlert ? 'text-accent animate-pulse' : 'text-accent/60'} group-hover/alert:scale-125 transition-transform shrink-0`} 
+                            />
+                          </div>
+                        )}
+                        <div
+                          className="absolute bottom-0 left-0 h-1 bg-accent/20 group-hover/tag:bg-accent/40 transition-all"
+                          style={{ width: `${Math.min(tagPostsCount / STOCK_TARGET * 100, 100)}%` }}
+                        />
+                      </button>
+                      
+                      {/* Hover Tooltip for Quick Action */}
+                      {(hasBucketAlert || hasMilestoneAlert) && (
+                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover/tag:opacity-100 pointer-events-none transition-all z-50 whitespace-nowrap">
+                          <div className="bg-text text-bg text-[10px] p-2 rounded-lg shadow-xl font-bold uppercase tracking-widest">
+                            {hasMilestoneAlert ? '🏁 Milestone: Rehber Oluştur' : '📦 Stok Birikti!'}
+                          </div>
+                          <div className="w-2 h-2 bg-text rotate-45 mx-auto -mt-1" />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
           </div>
           <div className="flex items-center gap-2 max-w-xs">
@@ -376,113 +473,76 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
 
       {/* MİLESTONE & PATTERN AREA */}
       <div className="space-y-4 mb-10">
-        {Object.entries(groups).map(([tag, tagPosts]) => {
-          const isMilestone = tagPosts.length >= STOCK_TARGET;
-          const isBucket = tagPosts.length >= 3 && tagPosts.length < STOCK_TARGET;
-
-          if (isMilestone) {
-            return (
-              <div key={`ms-${tag}`} className="bg-accent text-text rounded-[32px] p-8 shadow-xl flex items-center gap-6 border-4 border-surface ring-1 ring-accent">
-                <span className="text-4xl animate-bounce">🎉</span>
-                <div className="space-y-1">
-                  <div className="text-[10px] font-bold tracking-[0.2em] opacity-80 uppercase">MILESTONE REACHED</div>
-                  <div className="text-lg font-bold leading-tight"><strong>{tag}</strong> — 10 esere ulaştın! Hemen bir rehber oluştur.</div>
+        {selectedTag && showStockAlertForTag === selectedTag && (groups[selectedTag]?.length ?? 0) >= 3 && (
+          <div className="space-y-4">
+            {groups[selectedTag].length >= STOCK_TARGET ? (
+              <div className="bg-accent text-text rounded-[32px] p-8 shadow-xl border-4 border-surface ring-1 ring-accent">
+                <div className="flex flex-col md:flex-row items-center gap-6">
+                  <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-inner shrink-0 animate-bounce">
+                    <span className="text-4xl">🎉</span>
+                  </div>
+                  <div className="grow space-y-1 text-center md:text-left">
+                    <div className="text-[10px] font-bold tracking-[0.2em] opacity-80 uppercase text-bg">STOCK CONSOLIDATION</div>
+                    <div className="text-lg font-bold leading-tight">
+                      <strong>{selectedTag}</strong> — 10 esere ulaştın! Austin Kleon der ki: "Kendi sesini bulmanın yolu, başkalarının seslerini birleştirmekten geçer." Hemen bir rehber oluştur.
+                    </div>
+                    <div className="text-xs font-bold uppercase tracking-widest opacity-60 mt-2 text-bg">Şablon Seç veya Sihirbazı Başlat</div>
+                  </div>
+                  <button
+                    onClick={() => openStockWizard(selectedTag)}
+                    className="bg-text text-bg px-8 py-4 rounded-2xl font-bold uppercase tracking-widest text-[10px] hover:scale-105 transition-all shadow-xl flex items-center gap-2 group shrink-0"
+                  >
+                    Sihirbazla Devam Et <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-8">
+                  {(['technical', 'documentary', 'readingList', 'oldVsNew'] as TemplateKey[]).map(type => (
+                    <button
+                      key={type}
+                      onClick={() => setTemplateModal({ tag: selectedTag, type, count: groups[selectedTag].length, step: 'context', answers: Array(TEMPLATE_DEFS[type].context.fields.length).fill('') })}
+                      className="bg-white border border-transparent p-4 rounded-2xl hover:border-text group transition-all text-center flex flex-col items-center gap-2"
+                    >
+                      <span className="text-2xl group-hover:scale-125 transition-transform">{TEMPLATE_DEFS[type].icon}</span>
+                      <span className="text-[9px] font-bold uppercase tracking-widest whitespace-nowrap text-text">{TEMPLATE_DEFS[type].label.split(' ')[0]}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
-            );
-          }
-
-          if (isBucket) {
-            return (
-              <div key={`pa-${tag}`} className="bg-[#E9F0FF] border border-[#D1E0FF] rounded-[48px] p-8 md:p-12 shadow-sm">
-                <div className="space-y-10">
-                  <div className="flex items-center gap-6">
-                    <div className="w-16 h-16 bg-[#4A72FF] text-white rounded-[24px] flex items-center justify-center text-3xl shadow-lg shrink-0">🛠️</div>
-                    <div className="grow">
-                      <h3 className="text-2xl font-bold text-[#4A72FF] uppercase tracking-widest">Stok Birikti — {tag.replace('#', '')}</h3>
-                      <p className="text-sm text-text/60 mt-1">"{tag}" etiketinde {tagPosts.length} eser birikti. Kleon'un dediği gibi: "Küçük şeyler zamanla büyür."</p>
-                      <div className="w-full h-1.5 bg-[#D1E0FF] rounded-full mt-4 overflow-hidden">
-                        <div
-                          className="h-full bg-[#4A72FF] transition-all duration-1000"
-                          style={{ width: `${Math.min((tagPosts.length / STOCK_TARGET) * 100, 100)}%` }}
-                        />
-                      </div>
+            ) : (
+              <div className="bg-[#E9F0FF]/80 backdrop-blur-md border border-[#D1E0FF] rounded-[32px] p-6 shadow-lg">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-[#4A72FF] text-white rounded-xl flex items-center justify-center text-xl shadow-md shrink-0">
+                      <AlertTriangle size={20} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-[#4A72FF] uppercase tracking-widest">Stok Birikti — {selectedTag.replace('#', '')}</h3>
+                      <p className="text-[10px] text-text/50">"{selectedTag}" etiketinde {groups[selectedTag].length} eser birikti. Onları birleştirip bir değer üretmek ister misin?</p>
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="space-y-6">
-                      <div className="bg-white/80 p-8 rounded-[32px] border border-[#D1E0FF] space-y-4 shadow-sm">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">💡</span>
-                          <p className="text-[11px] font-bold text-[#4A72FF] uppercase tracking-[0.2em]">Ayrı Ayrı mı Yoksa Birleşik mi? (Stok Mantığı)</p>
-                        </div>
-                        <p className="text-xs leading-relaxed text-text/80">
-                          Kleon, stoğun en iyi şekilde <strong>"akışını toplayarak, düzenleyerek ve genişleterek"</strong> oluşturulacağını söyler.
-                          <br /><br />
-                          <strong>Öneri:</strong> Bu {tagPosts.length} içeriği {tagPosts.length} ayrı mini-rehber yapmak yerine, onları <strong>tek bir anlamlı bütün</strong> haline getir.
-                        </p>
-                        <p className="text-[11px] text-[#4A72FF] italic">
-                          <strong>Neden?</strong> {tagPosts.length} küçük ipucu birleştiğinde <strong>"{tag.replace('#', '')} Üzerine Rehber"</strong> gibi çok daha değerli bir kaynağa dönüşür.
-                        </p>
-                      </div>
-
-                      <div className="bg-[#4A72FF]/5 p-8 rounded-[32px] border border-[#4A72FF]/10 space-y-4">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">🎯</span>
-                          <p className="text-[11px] font-bold text-[#4A72FF] uppercase tracking-[0.2em]">Şablon Seçimi Stratejisi</p>
-                        </div>
-                        <div className="space-y-3 text-[10px] leading-relaxed text-text/70">
-                          <p>🛠 <strong>Teknik Rehber:</strong> İçerikler adım adım bir süreci anlatıyorsa.</p>
-                          <p>🎬 <strong>Belgesel:</strong> Bir projenin mutfağını, hatalarını ve başarılarını paylaşmak istiyorsan.</p>
-                          <p>📚 <strong>Atıf Kitapçığı:</strong> Öğrendiğin kaynakları kürasyon yapıp paylaşmak istiyorsan.</p>
-                          <p>🌱 <strong>Eski vs. Yeni:</strong> Zamanla nasıl geliştiğini belgelemek istiyorsan.</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 gap-4">
-                        {(Object.entries(TEMPLATE_DEFS) as [TemplateKey, typeof TEMPLATE_DEFS[TemplateKey]][]).map(([type, def]) => (
-                          <button
-                            key={type}
-                            onClick={() => openTemplateModal(tag, type, tagPosts.length)}
-                            className="bg-white border border-[#D1E0FF] p-6 rounded-[24px] hover:border-[#4A72FF] hover:shadow-xl transition-all group text-left active:scale-[0.98] relative overflow-hidden"
-                          >
-                            <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Plus size={16} className="text-[#4A72FF]" />
-                            </div>
-                            <div className="flex items-center gap-3 mb-2">
-                              <span className="text-xl">{def.icon}</span>
-                              <div className="font-bold text-[14px] text-text group-hover:text-[#4A72FF] transition-colors">{def.label}</div>
-                            </div>
-                            <div className="text-[10px] leading-relaxed text-muted opacity-80">{def.context.whenToUse}</div>
-                            <div className="mt-4 pt-4 border-t border-[#D1E0FF] flex gap-2 flex-wrap">
-                              {def.context.fields.map((f, i) => (
-                                <span key={i} className="text-[9px] bg-[#F0F4FF] text-[#4A72FF] px-2 py-1 rounded-full font-bold">
-                                  {i + 1}. {f.label.split(' ')[0]}
-                                </span>
-                              ))}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-
-                      <div className="bg-white/40 p-6 rounded-[24px] border border-dashed border-[#D1E0FF] text-center">
-                        <p className="text-[10px] font-bold text-[#4A72FF] uppercase tracking-[0.2em] mb-2">Kleon'un "Örüntü" Tavsiyesi</p>
-                        <p className="text-[10px] italic text-text/60 leading-relaxed">
-                          "Bu {tagPosts.length} içeriğe yukarıdan bak. Ortak nokta ne? Örüntüyü bulduğun an, bu parçaları birleştirerek derli toplu bir değer sunarsın."
-                        </p>
-                      </div>
-                    </div>
+                  <div className="flex gap-2 flex-wrap justify-end">
+                    <button
+                      onClick={() => openStockWizard(selectedTag)}
+                      className="bg-[#4A72FF] text-white px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:scale-105 transition-all shadow-sm flex items-center gap-2"
+                    >
+                      Sihirbazı Başlat
+                    </button>
+                    {(['technical', 'documentary', 'readingList', 'oldVsNew'] as TemplateKey[]).map(type => (
+                      <button
+                        key={type}
+                        onClick={() => setTemplateModal({ tag: selectedTag, type, count: groups[selectedTag].length, step: 'context', answers: Array(TEMPLATE_DEFS[type].context.fields.length).fill('') })}
+                        className="bg-white border border-[#D1E0FF] px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:border-[#4A72FF] hover:text-[#4A72FF] text-text transition-all shadow-sm flex items-center gap-2"
+                      >
+                        <span>{TEMPLATE_DEFS[type].icon}</span>
+                        <span>{TEMPLATE_DEFS[type].label.split(' ')[0]}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
-            );
-          }
-
-          return null;
-        })}
+            )}
+          </div>
+        )}
       </div>
 
       {/* ŞEHİR / ETİKET GÖRÜNÜMÜ */}
@@ -742,7 +802,12 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                     <button
                       onClick={() => {
                         window.dispatchEvent(new CustomEvent('continue-draft', {
-                          detail: { content: selectedPost.content, tags: selectedPost.tags.join(', ') }
+                          detail: { 
+                            content: selectedPost.content, 
+                            tags: selectedPost.tags.join(', '),
+                            originalIdea: (selectedPost as any).originalIdea,
+                            originalDoc: (selectedPost as any).originalDoc
+                          }
                         }));
                         setSelectedPostId(null);
                       }}
@@ -1032,7 +1097,352 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
           );
         })()}
       </AnimatePresence>
+      {/* STOCK BİRİKTİ SİHİRBAZI (YENİ AKIŞ) */}
+      <AnimatePresence>
+        {stockWizard && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => stockWizard.step === 5 ? setStockWizard(null) : undefined}
+              className="fixed inset-0 bg-text/40 backdrop-blur-xl z-[100]"
+            />
+            <motion.div
+              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="fixed inset-y-0 right-0 w-full md:w-[600px] bg-bg shadow-2xl z-[110] flex flex-col border-l border-border"
+            >
+              <div className="p-6 border-b border-border flex items-center justify-between shrink-0 bg-surface">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-accent text-bg rounded-xl flex items-center justify-center text-xl font-bold">🛠️</div>
+                  <div>
+                    <h3 className="text-sm font-bold uppercase tracking-widest text-text">Stock Consolidation</h3>
+                    <p className="text-[10px] text-muted font-bold opacity-60 uppercase tracking-tighter">{stockWizard.tag} · {stockWizard.selectedPostIds.length} Fikir Seçildi</p>
+                  </div>
+                </div>
+                <button onClick={() => setStockWizard(null)} className="p-2 hover:bg-black/5 rounded-full transition-colors">
+                  <X size={20} className="text-muted" />
+                </button>
+              </div>
 
+              <div className="flex-1 overflow-y-auto p-6 space-y-10 no-scrollbar">
+                
+                {/* STEP 0: ZAMAN ÇİZGİSİ + SEÇİM */}
+                {stockWizard.step === 0 && (
+                  <div className="space-y-8">
+                    <div className="space-y-2">
+                      <h4 className="text-xl font-bold text-text">ADIM 0 — Zaman Çizgisi + Seçim</h4>
+                      <p className="text-xs text-muted leading-relaxed">Birleştirmek istediğin fikirleri seç. Kleon felsefesi: "Noktaları birleştir, bütünü gör."</p>
+                    </div>
+                    
+                    <div className="relative pl-6 space-y-6 before:content-[''] before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-border">
+                      {(groups[stockWizard.tag] || []).map((p) => {
+                        const isSelected = stockWizard.selectedPostIds.includes(p.id);
+                        return (
+                          <div 
+                            key={p.id} 
+                            onClick={() => {
+                              const ids = isSelected 
+                                ? stockWizard.selectedPostIds.filter(id => id !== p.id)
+                                : [...stockWizard.selectedPostIds, p.id];
+                              setStockWizard({ ...stockWizard, selectedPostIds: ids });
+                            }}
+                            className={`relative p-4 rounded-2xl cursor-pointer transition-all border-2 group ${
+                              isSelected ? 'bg-accent/5 border-accent scale-[1.01] shadow-lg shadow-accent/5' : 'bg-surface border-transparent hover:border-border'
+                            }`}
+                          >
+                            <div className={`absolute -left-[24px] top-1/2 -translate-y-1/2 w-[10px] h-[10px] rounded-full border-2 border-bg ring-4 ring-transparent transition-all ${
+                              isSelected ? 'bg-accent ring-accent/20' : 'bg-border'
+                            }`} />
+                            
+                            <div className="flex justify-between items-start gap-4">
+                              <div className="space-y-1">
+                                <div className="text-[9px] font-bold text-muted uppercase tracking-widest">{p.date}</div>
+                                <div className="text-sm text-text/80 line-clamp-2 leading-relaxed italic serif" dangerouslySetInnerHTML={{ __html: p.content }} />
+                              </div>
+                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                                isSelected ? 'bg-accent border-accent text-bg scale-110' : 'border-border text-transparent'
+                              }`}>
+                                <ArrowRight size={10} className="rotate-[-45deg]" />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <button
+                      disabled={stockWizard.selectedPostIds.length < 2}
+                      onClick={() => {
+                        const keywords = findCommonWords(stockWizard.selectedPostIds);
+                        setStockWizard({ 
+                          ...stockWizard, 
+                          step: 1, 
+                          approvedKeywords: keywords.slice(0, 4),
+                          suggestedTemplate: suggestTemplate(keywords)
+                        });
+                      }}
+                      className={`w-full py-5 rounded-[24px] font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all shadow-xl ${
+                        stockWizard.selectedPostIds.length >= 2 
+                          ? 'bg-text text-bg hover:scale-[0.98]' 
+                          : 'bg-surface text-muted cursor-not-allowed opacity-50'
+                      }`}
+                    >
+                      {stockWizard.selectedPostIds.length < 2 ? 'En az 2 fikir seç' : `${stockWizard.selectedPostIds.length} Fikri Birleştir →`}
+                    </button>
+                  </div>
+                )}
+
+                {/* STEP 1: ÖRÜNTÜ EKRANI */}
+                {stockWizard.step === 1 && (
+                  <div className="space-y-10">
+                    <div className="space-y-3">
+                      <div className="text-[10px] font-bold text-accent tracking-[0.3em] uppercase">ADIM 1 — ÖRÜNTÜ BULUNDU</div>
+                      <h4 className="text-2xl font-bold text-text">Seçtiğin {stockWizard.selectedPostIds.length} fikir arasındaki ortak noktalar:</h4>
+                      <p className="text-xs text-muted">Aşağıdaki kelimeler seçtiğin fikirlerde en çok geçen örüntülerdir. Rehberinde vurgulamak istediklerini onayla.</p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {findCommonWords(stockWizard.selectedPostIds).map(word => {
+                        const isApproved = stockWizard.approvedKeywords.includes(word);
+                        return (
+                          <button
+                            key={word}
+                            onClick={() => {
+                              const kws = isApproved 
+                                ? stockWizard.approvedKeywords.filter(k => k !== word)
+                                : [...stockWizard.approvedKeywords, word];
+                              const newSuggest = suggestTemplate(kws);
+                              setStockWizard({ ...stockWizard, approvedKeywords: kws, suggestedTemplate: newSuggest });
+                            }}
+                            className={`px-5 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all flex items-center gap-2 ${
+                              isApproved ? 'bg-accent border-accent text-bg shadow-md' : 'bg-surface border-border text-muted hover:border-accent'
+                            }`}
+                          >
+                            {isApproved ? '✓' : '＋'} {word}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="bg-surface/50 border border-border rounded-[32px] p-8 space-y-6">
+                      <div className="flex items-center gap-4">
+                        <div className="text-4xl animate-pulse">✨</div>
+                        <div className="space-y-1">
+                          <h4 className="text-[10px] font-bold text-accent uppercase tracking-widest">SİSTEM ÖNERİSİ</h4>
+                          <p className="text-sm font-bold text-text">Bu fikirler ve onayladığın kelimeler en çok şu şablona uyuyor:</p>
+                        </div>
+                      </div>
+                      
+                      <div className="p-4 bg-bg border-2 border-accent rounded-2xl flex items-center gap-4 shadow-inner">
+                        <span className="text-3xl">{TEMPLATE_DEFS[stockWizard.suggestedTemplate].icon}</span>
+                        <div>
+                          <p className="text-sm font-bold text-accent uppercase tracking-widest">{TEMPLATE_DEFS[stockWizard.suggestedTemplate].label}</p>
+                          <p className="text-[10px] text-muted italic">Kleon der ki: "Rehberin yapısı içindeki örüntüye göre şekillenir."</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setStockWizard({ ...stockWizard, step: 2 })}
+                      className="w-full py-5 bg-text text-bg rounded-[24px] font-bold uppercase tracking-widest text-xs shadow-xl hover:scale-[0.98] transition-all"
+                    >
+                      Onayladıklarımla Devam Et →
+                    </button>
+                  </div>
+                )}
+
+                {/* STEP 2: ŞABLON SEÇİMİ */}
+                {stockWizard.step === 2 && (
+                  <div className="space-y-8">
+                     <div className="space-y-2">
+                        <h4 className="text-xl font-bold text-text">ADIM 2 — Şablonu Kesinleştir</h4>
+                        <p className="text-xs text-muted leading-relaxed">Önerilen şablon en uygunu gibi görünüyor, ancak istersen başka bir tane seçebilirsin.</p>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-3">
+                        {Object.entries(TEMPLATE_DEFS).map(([key, def]) => {
+                          const isSuggested = stockWizard.suggestedTemplate === key;
+                          const isSelected = stockWizard.suggestedTemplate === key;
+                          return (
+                            <button
+                              key={key}
+                              onClick={() => setStockWizard({ ...stockWizard, suggestedTemplate: key as TemplateKey })}
+                              className={`p-6 rounded-[24px] border-2 text-left transition-all relative overflow-hidden group ${
+                                isSelected ? 'bg-accent/5 border-accent' : 'bg-surface border-transparent hover:border-border'
+                              }`}
+                            >
+                              {isSuggested && (
+                                <div className="absolute top-0 right-0 bg-accent text-bg px-3 py-1 text-[8px] font-bold uppercase tracking-widest rounded-bl-xl">ÖNERİLEN</div>
+                              )}
+                              <div className="flex items-center gap-4">
+                                <span className="text-3xl group-hover:scale-110 transition-transform">{def.icon}</span>
+                                <div>
+                                  <h5 className="text-sm font-bold text-text uppercase tracking-widest">{def.label}</h5>
+                                  <p className="text-[10px] text-muted mt-1 leading-relaxed">{def.context.whenToUse}</p>
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          const fieldCount = TEMPLATE_DEFS[stockWizard.suggestedTemplate].context.fields.length;
+                          setStockWizard({ ...stockWizard, step: 3, answers: Array(fieldCount).fill('') });
+                        }}
+                        className="w-full py-5 bg-text text-bg rounded-[24px] font-bold uppercase tracking-widest text-xs shadow-xl"
+                      >
+                        Seçili Şablonla Yazmaya Başla →
+                      </button>
+                  </div>
+                )}
+
+                {/* STEP 3: FORM + REFERANSLAR */}
+                {stockWizard.step === 3 && (
+                  <div className="space-y-10">
+                     <div className="space-y-2">
+                        <h4 className="text-xl font-bold text-text">ADIM 3 — Rehberi Oluştur</h4>
+                        <p className="text-xs text-muted leading-relaxed">Fikirlerini birleştirerek yeni bir değer üret. Yan taraftaki referansları kullanarak hızlanabilirsin.</p>
+                      </div>
+
+                      <div className="space-y-12">
+                        {TEMPLATE_DEFS[stockWizard.suggestedTemplate].context.fields.map((field, i) => (
+                          <div key={i} className="space-y-6">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-accent text-bg rounded-lg flex items-center justify-center text-xs font-bold">{i+1}</div>
+                              <h5 className="text-sm font-bold uppercase tracking-widest text-[#4A72FF]">{field.label}</h5>
+                            </div>
+                            
+                            <p className="text-[10px] text-muted italic leading-relaxed border-l-2 pl-4 border-accent/30">{field.hint}</p>
+
+                            <textarea
+                              id={`stock-field-${i}`}
+                              value={stockWizard.answers[i]}
+                              onChange={e => {
+                                const ans = [...stockWizard.answers];
+                                ans[i] = e.target.value;
+                                setStockWizard({ ...stockWizard, answers: ans });
+                              }}
+                              rows={6}
+                              className="w-full p-6 bg-surface border-2 border-border focus:border-accent rounded-[32px] text-sm outline-none resize-none leading-relaxed transition-all shadow-inner serif italic"
+                              placeholder="Fikirlerini burada harmanla..."
+                            />
+
+                            <div className="space-y-3">
+                              <div className="text-[9px] font-bold text-muted uppercase tracking-[0.2em] opacity-60">Seçtiğin fikirlerden:</div>
+                              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+                                {posts.filter(p => stockWizard.selectedPostIds.includes(p.id)).map(p => (
+                                  <button
+                                    key={p.id}
+                                    onClick={() => {
+                                      const ans = [...stockWizard.answers];
+                                      const clean = p.content.replace(/<[^>]*>/g, ' ').trim().slice(0, 120);
+                                      ans[i] = ans[i] ? ans[i] + '\n\n' + clean + '...' : clean + '...';
+                                      setStockWizard({ ...stockWizard, answers: ans });
+                                      setTimeout(() => {
+                                        const ta = document.getElementById(`stock-field-${i}`);
+                                        if (ta) {
+                                          ta.scrollTop = ta.scrollHeight;
+                                          ta.focus();
+                                        }
+                                      }, 50);
+                                    }}
+                                    className="shrink-0 p-3 bg-accent/5 border border-accent/20 rounded-xl text-[10px] italic text-text/60 max-w-[180px] hover:bg-accent/10 hover:border-accent/40 transition-all text-left group"
+                                  >
+                                    <div className="flex items-center justify-between gap-2 mb-1">
+                                      <span className="font-bold opacity-60 text-[8px] uppercase">{p.date}</span>
+                                      <Plus size={10} className="text-accent" />
+                                    </div>
+                                    <div className="line-clamp-2 leading-relaxed" dangerouslySetInnerHTML={{ __html: p.content }} />
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <button
+                        onClick={() => setStockWizard({ ...stockWizard, step: 4 })}
+                        className="w-full py-5 bg-text text-bg rounded-[24px] font-bold uppercase tracking-widest text-xs shadow-xl"
+                      >
+                        Önizleme ve Yayınla →
+                      </button>
+                  </div>
+                )}
+
+                {/* STEP 4: ÖNİZLEME → YAYINLA */}
+                {stockWizard.step === 4 && (
+                  <div className="space-y-10">
+                    <div className="space-y-3 text-center">
+                      <div className="text-[10px] font-bold text-accent tracking-[0.3em] uppercase">ADIM 4 — SON DOKUNUŞLAR</div>
+                      <h4 className="text-2xl font-bold text-text">Tamamlanmış Rehberin</h4>
+                    </div>
+
+                    <div className="bg-surface border-2 border-border p-8 rounded-[40px] space-y-6 shadow-inner serif italic text-sm leading-relaxed text-text/80 shadow-accent/5">
+                      <div dangerouslySetInnerHTML={{ __html: buildGuideContent(stockWizard.suggestedTemplate, stockWizard.tag, stockWizard.answers) }} />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <button
+                        onClick={() => setStockWizard({ ...stockWizard, step: 3 })}
+                        className="py-5 border-2 border-border rounded-[24px] font-bold uppercase tracking-widest text-xs hover:bg-surface transition-colors"
+                      >
+                        ← Düzenle
+                      </button>
+                      <button
+                        onClick={() => {
+                          const { tag, suggestedTemplate, answers } = stockWizard;
+                          addPost({
+                            id: Date.now(),
+                            content: buildGuideContent(suggestedTemplate, tag, answers),
+                            tags: [tag, '#mini-rehber'],
+                            isPublished: true,
+                            date: new Date().toLocaleDateString('tr-TR'),
+                            isTeaching: true,
+                            guideType: suggestedTemplate,
+                            sourceTag: tag,
+                          } as Post);
+                          archivePostsByTag(tag);
+                          setStockWizard({ ...stockWizard, step: 5 });
+                        }}
+                        className="py-5 bg-success text-white rounded-[24px] font-bold uppercase tracking-widest text-xs shadow-xl"
+                      >
+                        Yayınla ✓
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 5: TEBRİKLER / SON */}
+                {stockWizard.step === 5 && (
+                  <div className="h-full flex flex-col items-center justify-center text-center space-y-8 animate-in fade-in zoom-in duration-500">
+                    <div className="w-32 h-32 bg-accent rounded-full flex items-center justify-center text-6xl shadow-2xl animate-bounce">🎊</div>
+                    <div className="space-y-4">
+                      <h3 className="text-3xl font-bold text-text">Muazzam Stok Eritme!</h3>
+                      <p className="text-sm text-muted max-w-xs mx-auto leading-relaxed">
+                        Seçtiğin fikirleri birleştirerek <strong>{stockWizard.tag}</strong> üzerine harika bir rehber oluşturdun. Austin Kleon gurur duyardı!
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setStockWizard(null);
+                        setSelectedTag(null);
+                        setShowStockAlertForTag(null);
+                      }}
+                      className="px-12 py-5 bg-text text-bg rounded-[24px] font-bold uppercase tracking-widest text-xs shadow-xl"
+                    >
+                      Kabineye Dön
+                    </button>
+                  </div>
+                )}
+
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -27,6 +27,9 @@ export interface Post {
   rehberType?: string;
   guideType?: string;
   sourceTag?: string;
+  originalIdea?: string;
+  originalDoc?: string;
+  isArchived?: boolean;
 }
 
 export interface AppState {

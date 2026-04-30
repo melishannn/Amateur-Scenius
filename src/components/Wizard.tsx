@@ -6,6 +6,7 @@ import { GoogleGenAI } from "@google/genai";
 
 interface WizardProps {
   addPost: (post: Post) => void;
+  archivePostsByTag: (tag: string) => void;
   hemingwayChain: string;
   saveHemingway: (chain: string) => void;
 }
@@ -95,7 +96,7 @@ const GUIDE_FIELDS = {
   ],
 } as const;
 
-export default function Wizard({ addPost, hemingwayChain, saveHemingway }: WizardProps) {
+export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, saveHemingway }: WizardProps) {
   const [step, setStep] = useState(0);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isTagsAiLoading, setIsTagsAiLoading] = useState(false);
@@ -185,8 +186,13 @@ export default function Wizard({ addPost, hemingwayChain, saveHemingway }: Wizar
     // Cabinet'ten "taslağa devam et" eventi
     const handleDraft = (e: any) => {
       reset();
-      const { content, tags } = e.detail;
-      setFormData(prev => ({ ...prev, idea: content.replace(/<[^>]*>/g, ' ').trim(), tags }));
+      const { content, tags, originalIdea, originalDoc } = e.detail;
+      setFormData(prev => ({ 
+        ...prev, 
+        idea: originalIdea || content.replace(/<[^>]*>/g, ' ').trim().slice(0, 500),
+        doc: originalDoc || '',
+        tags: tags || ''
+      }));
       setStep(0);
     };
 
@@ -211,6 +217,8 @@ export default function Wizard({ addPost, hemingwayChain, saveHemingway }: Wizar
     attrHow: '',
     attrWhy: '',
     attrResonate: '',
+    originalIdea: '',
+    originalDoc: '',
     q1: '',
     q2: '',
     // Mini rehber alanları
@@ -232,6 +240,18 @@ export default function Wizard({ addPost, hemingwayChain, saveHemingway }: Wizar
     media: [] as { type: 'image' | 'audio' | 'text'; url: string; name?: string; content?: string }[]
   });
 
+  const reset = () => {
+    setFormData({
+      idea: '', tags: '', doc: '', isAmateur: false, isTeaching: false,
+      platform: 'Kendi Web Sitem', attrName: '', attrLink: '', attrHow: '', attrWhy: '',
+      attrResonate: '', sourceTag: '', originalIdea: '', originalDoc: '',
+      tools: '', s1: '', s2: '', s3: '', target: '', difficulties: '',
+      lessons: '', sources: '', multimedia: '', follows: '', oldWay: '',
+      newWay: '', q1: '', q2: '', nextLine: '', polishedStory: '', rehberType: '', media: []
+    });
+    setStep(0);
+  };
+
   const set = (key: keyof typeof formData, val: any) =>
     setFormData(prev => ({ ...prev, [key]: val }));
 
@@ -248,7 +268,7 @@ export default function Wizard({ addPost, hemingwayChain, saveHemingway }: Wizar
     try {
       const ai = getAI(); if (!ai) return;
       const r = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3-flash-preview',
         contents: `Fikir: "${formData.idea}". 3-5 Türkçe hashtag öner. Sadece virgülle ayır, # koyma. Örn: yazılım, tasarım`
       });
       if (r.text) set('tags', r.text.trim());
@@ -260,7 +280,7 @@ export default function Wizard({ addPost, hemingwayChain, saveHemingway }: Wizar
     try {
       const ai = getAI(); if (!ai) return;
       const r = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3-flash-preview',
         contents: `Konu: "${formData.idea}". Bu konuyla ilgili Austin Kleon / Steven Pressfield tarzı bir öğüt ve "vampir uyarısı" (yaratıcılığı öldüren şeyler) üret. JSON: { "quote": "...", "author": "...", "warnings": ["..."] }`,
         config: { responseMimeType: 'application/json' }
       });
@@ -273,7 +293,7 @@ export default function Wizard({ addPost, hemingwayChain, saveHemingway }: Wizar
     try {
       const ai = getAI(); if (!ai) return;
       const r = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3-flash-preview',
         contents: `Süreç: "${formData.polishedStory}". Hemingway Taktiği — yarım kalmış bir cümle öner. Yarın kaldığın yerden devam edebilmek için.
 
 MANDATORY INSTRUCTIONS:
@@ -298,7 +318,7 @@ MANDATORY INSTRUCTIONS:
     try {
       const ai = getAI(); if (!ai) return;
       const r = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3-flash-preview',
         contents: `Ham notlar: "${ctx}". Başlangıç fikri: "${formData.idea}". Bu notları 1-2 cümlelik vurucu bir "Amatör Scenius" fikrine dönüştür.`
       });
       if (r.text) set('idea', r.text.trim());
@@ -311,10 +331,16 @@ MANDATORY INSTRUCTIONS:
       const ai = getAI(); if (!ai) return;
       const currentText = formData.polishedStory || formData.q1;
       const r = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3-flash-preview',
         contents: `
-          Sen bir "Amatör Scenius" rehberisin. Kullanıcının ham hikayesini Austin Kleon felsefesine uygun zenginleştir. Sadece metin döndür, HTML kullanma. İşlemi yaparken belgedeki bilgileri ve (varsa) atıfları, bağlamla güçlü bir şekilde harmanla.
+          Sen bir "Amatör Scenius" rehberisin. Kullanıcının ham hikayesini Austin Kleon felsefesine uygun zenginleştir. 
           
+          ÖNEMLİ: 
+          1. Kesinlikle "BİRİNCİ TEKİL ŞAHIS" (Ben dili) kullan. "Konuşmacı şöyle dedi" deme, "Şunu yaptım, bunu fark ettim" de.
+          2. Sadece metin döndür, HTML kullanma. 
+          3. İşlemi yaparken belgedeki bilgileri ve (varsa) atıfları, bağlamla güçlü bir şekilde harmanla. 
+          4. Atıf/Kaynak ({formData.attrName}) belirtilmişse bunu metnin içine doğal bir şekilde yedir (Örn: "... Franklin'in dediği gibi barbekü ateşini yakarken...").
+
           Metin: "${currentText}"
           Düşünce: "${formData.idea}"
           Bağlam: "${formData.doc}"
@@ -360,19 +386,6 @@ MANDATORY INSTRUCTIONS:
     if (target >= 0) setStep(target);
   };
 
-  const reset = () => {
-    setStep(0);
-    setVampireQuote(null);
-    setFormData({
-      idea: '', tags: '', sourceTag: '', doc: '', isAmateur: false, isTeaching: false,
-      platform: 'Kendi Web Sitem', attrName: '', attrLink: '', attrHow: '',
-      attrWhy: '', attrResonate: '', q1: '', q2: '', nextLine: '',
-      tools: '', s1: '', s2: '', s3: '', target: '', difficulties: '',
-      lessons: '', sources: '', multimedia: '', follows: '', oldWay: '',
-      newWay: '', polishedStory: '', rehberType: '', media: []
-    });
-  };
-
   const toCabinet = (msg: string) => {
     addPost({
       id: Date.now(),
@@ -383,7 +396,9 @@ MANDATORY INSTRUCTIONS:
       date: new Date().toLocaleDateString('tr-TR'),
       isAmateur: formData.isAmateur,
       isTeaching: formData.isTeaching,
-      rehberType: formData.rehberType
+      rehberType: formData.rehberType,
+      originalIdea: formData.idea,
+      originalDoc: formData.doc
     });
     alert(msg);
     reset();
@@ -407,8 +422,13 @@ MANDATORY INSTRUCTIONS:
       date: new Date().toLocaleDateString('tr-TR'),
       rehberType: formData.rehberType,
       guideType: formData.rehberType,
-      sourceTag: formData.sourceTag
+      sourceTag: formData.sourceTag,
+      originalIdea: formData.idea,
+      originalDoc: formData.doc
     });
+    if (formData.sourceTag) {
+      archivePostsByTag(formData.sourceTag);
+    }
     nextStep();
   };
 

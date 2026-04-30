@@ -136,6 +136,16 @@ export default function App() {
     }));
   };
 
+  useEffect(() => {
+    const handleSwitchToFlow = () => setActiveTab('flow');
+    window.addEventListener('continue-draft', handleSwitchToFlow);
+    window.addEventListener('start-mini-rehber', handleSwitchToFlow);
+    return () => {
+      window.removeEventListener('continue-draft', handleSwitchToFlow);
+      window.removeEventListener('start-mini-rehber', handleSwitchToFlow);
+    };
+  }, []);
+
   const deletePost = (id: number) => {
     setAppState((prev) => ({
       ...prev,
@@ -157,6 +167,15 @@ export default function App() {
         };
       });
     }
+  };
+
+  const archivePostsByTag = (tag: string) => {
+    setAppState((prev) => ({
+      ...prev,
+      posts: prev.posts.map(p => 
+        (p.tags.includes(tag) && !p.rehberType) ? { ...p, isArchived: true } : p
+      )
+    }));
   };
 
   const login = async () => {
@@ -238,38 +257,42 @@ export default function App() {
 
       <main className="flex-1 overflow-y-auto no-scrollbar relative z-10 pt-16 md:pt-0 pb-28 md:pb-0">
         <div className="w-full max-w-3xl mx-auto px-4 py-8 md:p-16">
+          <div style={{ display: activeTab === 'flow' ? 'block' : 'none' }}>
+            <Wizard 
+              addPost={addPost} 
+              archivePostsByTag={archivePostsByTag}
+              hemingwayChain={appState.chain}
+              saveHemingway={saveHemingway}
+            />
+          </div>
           <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-            >
-              {activeTab === 'flow' && (
-                <Wizard 
-                  addPost={addPost} 
-                  hemingwayChain={appState.chain}
-                  saveHemingway={saveHemingway}
-                />
-              )}
-              {activeTab === 'cabinet' && (
-                <Cabinet 
-                  posts={appState.posts} 
-                  stars={appState.stars}
-                  toggleStar={toggleStar}
-                  saveNote={saveRevisitNote}
-                  notes={appState.revisits}
-                  addPost={addPost}
-                  deletePost={deletePost}
-                  deleteTag={deleteTag}
-                  publishPost={publishPost}
-                  updatePostTags={updatePostTags}
-                />
-              )}
-              {activeTab === 'hub' && <Hub posts={appState.posts} />}
-              {activeTab === 'profile' && <Profile user={user} login={login} logout={logout} />}
-            </motion.div>
+            {activeTab !== 'flow' && (
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+              >
+                {activeTab === 'cabinet' && (
+                  <Cabinet 
+                    posts={appState.posts} 
+                    stars={appState.stars}
+                    toggleStar={toggleStar}
+                    saveNote={saveRevisitNote}
+                    notes={appState.revisits}
+                    addPost={addPost}
+                    deletePost={deletePost}
+                    deleteTag={deleteTag}
+                    publishPost={publishPost}
+                    updatePostTags={updatePostTags}
+                    archivePostsByTag={archivePostsByTag}
+                  />
+                )}
+                {activeTab === 'hub' && <Hub posts={appState.posts} />}
+                {activeTab === 'profile' && <Profile user={user} login={login} logout={logout} />}
+              </motion.div>
+            )}
           </AnimatePresence>
         </div>
       </main>
