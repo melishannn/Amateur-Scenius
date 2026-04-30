@@ -39,5 +39,5 @@ npm run dev
 Bu proje Google Cloud Run üzerinde barındırılmaktadır. Canlı sürüme aşağıdaki bağlantıdan ulaşabilirsiniz:
 👉 https://amateur-scenius-527887748922.europe-west1.run.app/
 
-###📄 Lisans
+### 📄 Lisans
 Bu proje MIT lisansı altında korunmaktadır.
