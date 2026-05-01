@@ -99,7 +99,7 @@ export default function AuthGate({ onLogin, onSkip }: AuthGateProps) {
                 type="email" 
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="ornek@mail.com"
+                placeholder={t("ornek@mail.com")}
                 className="w-full bg-white/50 border border-white/80 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:border-[#cdb4db] outline-none transition-all placeholder:text-[#7a6090]/50 text-[#1a0f2e] font-medium"
               />
             </div>
@@ -114,7 +114,7 @@ export default function AuthGate({ onLogin, onSkip }: AuthGateProps) {
                   type="password" 
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder={t("••••••••")}
                   className="w-full bg-white/50 border border-white/80 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:border-[#cdb4db] outline-none transition-all placeholder:text-[#7a6090]/50 text-[#1a0f2e] font-medium"
                 />
               </div>

@@ -34,7 +34,7 @@ const translations: Record<Language, Record<string, string>> = {
     'profile.guest_desc': 'Şu anki fikirlerin sadece bu tarayıcıda geçici olarak saklanıyor. Kalıcı olarak depolamak ve senkronize etmek için giriş yapmalısın.',
     'profile.login_btn': 'Google ile Giriş Yap',
     'profile.credits': 'Melogicard tarafından geliştirilmiştir',
-    
+
     // Hub
     'hub.title': 'Dünya Karargahı',
     'hub.subtitle': 'Sosyal ağlar gelip geçicidir. Asıl mülkiyet senin alan adında. Diğerleri sadece birer uydu.',
@@ -93,7 +93,7 @@ const translations: Record<Language, Record<string, string>> = {
     'move.no_tags': 'Taşınabilecek başka var olan etiket bulunamadı.',
     'move.new_label': 'YENİ ETİKET ADI',
     'move.new_ph': 'örn: ilham-panosu',
-    
+
     // We can add more translations here if needed, or fallback to the key.
   },
   en: {
@@ -108,7 +108,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.music_play': '🎵 Play Lo-Fi',
     'nav.music_stop': '🎵 Stop Lo-Fi',
     'nav.credits': 'Made by Mühendisin Kitaplığı',
-    
+
     // Profile
     'profile.title': 'Your Space',
     'profile.subtitle': 'On long journeys, the strongest headquarters is one\'s own identity.',
@@ -201,10 +201,18 @@ const translations: Record<Language, Record<string, string>> = {
     'Şablon Seç veya Sihirbazı Başlat': 'Select Template or Start Wizard',
     'Sihirbazla Devam Et': 'Continue with Wizard',
     'Sihirbazı Başlat': 'Start Wizard',
+    'Bugün aklıma şu geldi...': 'Today I thought this...',
+    'Etiketler': 'Tags',
+    'yazılım,tasarım (virgülle ayır)': 'software,design (separate with comma)',
+    'Yıldızla': 'Mark as favorite',
+    'Bu fikir bugün ne anlam taşıyor?': 'What does this idea mean to you today?',
     'Kabineye Dön': 'Return to Cabinet',
     'Taslak': 'Draft',
+    'Yayınlandı': 'Published',
     'Yayınlanmış': 'Published',
     'Tüm Eserleri Sil': 'Delete All Works',
+    'ETİKETİ': 'TAG',
+    'Uzman değilim, deneme yanılma yapıyorum.': 'I am not an expert, I am experimenting.',
     'Burada hiç fikir yok.': 'There are no ideas here.',
     'Bu kategoride henüz bir müze objesi yok.': 'There is no museum object in this category yet.',
     'Kayıp eserler aranıyor...': 'Searching for lost works...',
@@ -265,8 +273,14 @@ const translations: Record<Language, Record<string, string>> = {
     'Sahiplenilecek Kişiler': 'People to Own',
     'Eskiden Böyle Düşünürdüm': 'I Used to Think So',
     'Artık Şunu Biliyorum': 'Now I Know This',
-    'Uzman değilim, deneme yanılma yapıyorum.': 'I\'m not an expert, I\'m doing trial and error.',
     'HEMINGWAY TAKTİĞİ': 'HEMINGWAY TACTIC',
+    'Etiketlerde ara...': 'Search in Tags...',
+    'TÜMÜ': 'ALL',
+    'YILDIZLILAR': 'STARRED',
+    'TASLAKLAR': 'DRAFTS',
+    'ATIF': 'ATTRIBUTION',
+    'Yayınlananlar': 'PUBLISHED',
+    'ESER': 'WORK',
     'Fikir Defteri': 'Idea Notebook',
     'Örüntü (Pattern) Bulma': 'Finding Pattern',
     'Kleon der ki: "Bu içeriklere yukarıdan bak. Ortak nokta ne? Aynı dili mi kullanıyorlar, aynı hatayı mı çözüyorlar?"': 'Kleon says: "Look at these contents from above. What is the common point? Are they using the same language, solving the same mistake?"',

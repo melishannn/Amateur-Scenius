@@ -26,8 +26,8 @@ const TEMPLATE_DEFS = {
     icon: '🛠️',
     label: 'Adım Adım Teknik Rehber',
     color: '#4A72FF',
-    colorSoft: '#E9F0FF',
-    colorBorder: '#D1E0FF',
+    colorSoft: '#4A72FF1A',
+    colorBorder: '#4A72FF33',
     context: {
       headline: 'Aaron Franklin Stili — Mutfağını Paylaş',
       body: `Aaron Franklin her yıl barbekü tekniklerini anlatan saatler uzunluğunda videolar yayınlar. Sadece sonucu değil, fire build'i, et seçimini, sıcaklık kontrolünü — her aşamayı. Okuyucu seni "izleyerek" aynı sonuca ulaşabilmeli.`,
@@ -45,8 +45,8 @@ const TEMPLATE_DEFS = {
     icon: '🎬',
     label: '"Nasıl Yaptım?" Belgeseli',
     color: '#E76F51',
-    colorSoft: '#FDEEE9',
-    colorBorder: '#F5C8BC',
+    colorSoft: '#E76F511A',
+    colorBorder: '#E76F5133',
     context: {
       headline: 'Sucuğun Nasıl Yapıldığını Göster',
       body: `İnsanlar "sucuğun nasıl yapıldığını" görmek ister. Sadece sonucu değil, mutfağı paylaş. Karşılaştığın duvarları, çıkmaz sokakları, "ikinci perde" zorluklarını — Kleon'un dediği "throwing rocks" anlarını — açık yüreklilikle yaz. Bu seni güvenilir kılar.`,
@@ -63,8 +63,8 @@ const TEMPLATE_DEFS = {
     icon: '📚',
     label: 'İlham ve Atıf Kitapçığı',
     color: '#2A9D8F',
-    colorSoft: '#E0F5F3',
-    colorBorder: '#B2E5DF',
+    colorSoft: '#2A9D8F1A',
+    colorBorder: '#2A9D8F33',
     context: {
       headline: 'Açık Düğüm (Open Node) Ol',
       body: `Kleon, kaynaklarını paylaşmanın seni "açık bir düğüm" yaptığını söyler — topluluğun içinde bir kavşak noktasısın. Seni besleyen kitapları, videoları, kişileri paylaştığında, başkalarına kendi öğrenme yolculuklarında harita veriyorsun.`,
@@ -81,8 +81,8 @@ const TEMPLATE_DEFS = {
     icon: '🌱',
     label: '"Eski vs. Yeni" Gelişim Şablonu',
     color: '#6A4C93',
-    colorSoft: '#F0EBF8',
-    colorBorder: '#D9CCF0',
+    colorSoft: '#6A4C931A',
+    colorBorder: '#6A4C9333',
     context: {
       headline: 'Amatörlükten Ustalığa Yolculuk',
       body: `"Bu işe başladığımda ne bilmiyordum, şu an neyi farklı yapıyorum?" kıyaslaması, okuyucuya hem mütevazılık hem de ilham verir. Yanlış inançlarını, yanılgılarını, köşe dönümlerini paylaş. Amatörlük bir başlangıç noktasıdır, utanılacak bir şey değil.`,
@@ -461,7 +461,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
           <div className="flex items-center gap-2 max-w-xs">
             <input
               type="text"
-              placeholder="Etiketlerde ara..."
+              placeholder={t("Etiketlerde ara...")}
               value={tagSearch}
               onChange={(e) => setTagSearch(e.target.value)}
               className="w-full glass-card border border-border px-4 py-1.5 rounded-full text-[10px] outline-none focus:border-accent transition-colors"
@@ -502,7 +502,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                     <button
                       key={type}
                       onClick={() => setTemplateModal({ tag: selectedTag, type, count: groups[selectedTag].length, step: 'context', answers: Array(TEMPLATE_DEFS[type].context.fields.length).fill('') })}
-                      className="bg-white border border-transparent p-4 rounded-2xl hover:border-text group transition-all text-center flex flex-col items-center gap-2"
+                      className="bg-white dark:bg-surface border border-transparent p-4 rounded-2xl hover:border-text group transition-all text-center flex flex-col items-center gap-2"
                     >
                       <span className="text-2xl group-hover:scale-125 transition-transform">{TEMPLATE_DEFS[type].icon}</span>
                       <span className="text-[9px] font-bold uppercase tracking-widest whitespace-nowrap text-text">{TEMPLATE_DEFS[type].label.split(' ')[0]}</span>
@@ -511,15 +511,15 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                 </div>
               </div>
             ) : (
-              <div className="bg-[#E9F0FF]/80 backdrop-blur-md border border-[#D1E0FF] rounded-[32px] p-6 shadow-lg">
+              <div className="bg-[#E9F0FF]/90 dark:bg-[#1a1c29]/80 backdrop-blur-md border border-[#D1E0FF] dark:border-[#2e3b5e] rounded-[32px] p-6 shadow-lg">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-[#4A72FF] text-white rounded-xl flex items-center justify-center text-xl shadow-md shrink-0">
                       <AlertTriangle size={20} />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-[#4A72FF] uppercase tracking-widest">Stok Birikti — {selectedTag.replace('#', '')}</h3>
-                      <p className="text-[10px] text-text/50">"{selectedTag}" etiketinde {groups[selectedTag].length} eser birikti. Onları birleştirip bir değer üretmek ister misin?</p>
+                      <h3 className="text-sm font-bold text-[#4A72FF] dark:text-[#82a4ff] uppercase tracking-widest">Stok Birikti — {selectedTag.replace('#', '')}</h3>
+                      <p className="text-[10px] text-gray-600 dark:text-gray-300">"{selectedTag}" etiketinde {groups[selectedTag].length} eser birikti. Onları birleştirip bir değer üretmek ister misin?</p>
                     </div>
                   </div>
                   <div className="flex gap-2 flex-wrap justify-end">
@@ -533,7 +533,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                       <button
                         key={type}
                         onClick={() => setTemplateModal({ tag: selectedTag, type, count: groups[selectedTag].length, step: 'context', answers: Array(TEMPLATE_DEFS[type].context.fields.length).fill('') })}
-                        className="bg-white border border-[#D1E0FF] px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:border-[#4A72FF] hover:text-[#4A72FF] text-text transition-all shadow-sm flex items-center gap-2"
+                        className="bg-white dark:bg-[#1f2233] border border-[#D1E0FF] dark:border-[#2e3b5e] px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:border-[#4A72FF] dark:hover:border-[#82a4ff] hover:text-[#4A72FF] dark:hover:text-[#82a4ff] text-gray-700 dark:text-gray-200 transition-all shadow-sm flex items-center gap-2"
                       >
                         <span>{TEMPLATE_DEFS[type].icon}</span>
                         <span>{TEMPLATE_DEFS[type].label.split(' ')[0]}</span>
@@ -715,7 +715,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                     <div
                       key={tag}
                       onClick={() => setSelectedTag(tag)}
-                      className="group bg-white border border-border rounded-2xl overflow-hidden cursor-pointer hover:shadow-xl transition-all duration-500"
+                      className="group bg-white dark:bg-surface border border-border rounded-2xl overflow-hidden cursor-pointer hover:shadow-xl transition-all duration-500"
                     >
                       <div className="p-8">
                         <div className="flex justify-between items-start mb-2">
@@ -734,9 +734,9 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                         </div>
 
                         <div className="pt-8 space-y-2">
-                          <div className="h-1 bg-bg rounded-full overflow-hidden">
+                          <div className="h-1.5 bg-text/5 dark:bg-black/30 border border-text/10 dark:border-white/10 rounded-full relative">
                             <div
-                              className={`h-full transition-all duration-[1.5s] ease-out ${pct >= 100 ? 'bg-accent' : 'bg-text/20'}`}
+                              className="absolute top-0 left-0 h-full rounded-full transition-all duration-500 ease-out bg-white/80 dark:bg-white/60 backdrop-blur-md shadow-[0_0_10px_rgba(255,255,255,0.5)] dark:shadow-[0_0_12px_rgba(255,255,255,0.4)] border border-white/80 dark:border-white/50 group-hover:bg-white group-hover:shadow-[0_0_15px_rgba(255,255,255,0.9)] dark:group-hover:shadow-[0_0_20px_rgba(255,255,255,0.8)] dark:group-hover:border-white"
                               style={{ width: `${pct}%` }}
                             />
                           </div>
@@ -875,7 +875,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                     value={notes[selectedPost.id] || ''}
                     onChange={(e) => saveNote(selectedPost.id, e.target.value)}
                     className="w-full bg-transparent border-none focus:ring-0 text-sm italic serif text-text/80 resize-none outline-none leading-relaxed"
-                    placeholder="Bu fikir bugün ne anlam taşıyor?"
+                    placeholder={t("Bu fikir bugün ne anlam taşıyor?")}
                     rows={4}
                   />
                 </div>
@@ -1027,7 +1027,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                             value={answers[i]}
                             onChange={e => setAnswer(i, e.target.value)}
                             rows={4}
-                            className="w-full p-4 bg-transparent border rounded-[16px] text-sm outline-none resize-none leading-relaxed transition-colors focus:border-current"
+                            className="w-full p-4 bg-transparent text-text border rounded-[16px] text-sm outline-none resize-none leading-relaxed transition-colors focus:border-current"
                             style={{ borderColor: answers[i] ? def.color : def.colorBorder }}
                             placeholder={`${field.label} hakkında yaz...`}
                           />
@@ -1313,7 +1313,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                           <div key={i} className="space-y-6">
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 bg-accent text-bg rounded-lg flex items-center justify-center text-xs font-bold">{i+1}</div>
-                              <h5 className="text-sm font-bold uppercase tracking-widest text-[#4A72FF]">{field.label}</h5>
+                              <h5 className="text-sm font-bold uppercase tracking-widest text-accent">{field.label}</h5>
                             </div>
                             
                             <p className="text-[10px] text-muted italic leading-relaxed border-l-2 pl-4 border-accent/30">{field.hint}</p>
@@ -1327,8 +1327,8 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                                 setStockWizard({ ...stockWizard, answers: ans });
                               }}
                               rows={6}
-                              className="w-full p-6 bg-surface border-2 border-border focus:border-accent rounded-[32px] text-sm outline-none resize-none leading-relaxed transition-all shadow-inner serif italic"
-                              placeholder="Fikirlerini burada harmanla..."
+                              className="w-full p-6 bg-surface text-text border-2 border-border focus:border-accent rounded-[32px] text-sm outline-none resize-none leading-relaxed transition-all shadow-inner serif italic"
+                              placeholder={t("Fikirlerini burada harmanla...")}
                             />
 
                             <div className="space-y-3">

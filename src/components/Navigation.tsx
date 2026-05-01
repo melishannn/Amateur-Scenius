@@ -1,6 +1,7 @@
-import { LayoutDashboard, Archive, Radio, Database, Brain, LogOut, User, Globe } from 'lucide-react';
+import { LayoutDashboard, Archive, Radio, Database, Brain, LogOut, User, Globe, Moon,Sun, PanelLeftClose } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useEffect, useState } from 'react';
 
 interface NavigationProps {
   activeTab: string;
@@ -10,10 +11,49 @@ interface NavigationProps {
   logout: () => void;
   onToggleLofi: () => void;
   isLofiPlaying: boolean;
+  onToggleSidebar?: () => void;
 }
 
-export default function Navigation({ activeTab, setActiveTab, user, login, logout, onToggleLofi, isLofiPlaying }: NavigationProps) {
+export default function Navigation({ activeTab, setActiveTab, user, login, logout, onToggleLofi, isLofiPlaying, onToggleSidebar }: NavigationProps) {
   const { t, lang, setLang } = useLanguage();
+  const [isDark, setIsDark] = useState(false);
+ 
+  useEffect(() => {
+    const theme = localStorage.getItem('theme');
+    const html = document.documentElement;
+    if (theme === 'dark') {
+      html.classList.add('dark');
+      html.classList.remove('light');
+      setIsDark(true);
+    } else if (theme === 'light') {
+      html.classList.add('light');
+      html.classList.remove('dark');
+      setIsDark(false);
+    } else {
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        html.classList.add('dark');
+        setIsDark(true);
+      } else {
+        html.classList.add('light');
+        setIsDark(false);
+      }
+    }
+  }, []);
+ 
+  const toggleDarkMode = () => {
+    const html = document.documentElement;
+    if (isDark) {
+      html.classList.remove('dark');
+      html.classList.add('light');
+      localStorage.setItem('theme', 'light');
+      setIsDark(false);
+    } else {
+      html.classList.remove('light');
+      html.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+      setIsDark(true);
+    }
+  };
 
   const tabs = [
     { id: 'flow', label: t('nav.flow'), icon: LayoutDashboard },
@@ -21,19 +61,30 @@ export default function Navigation({ activeTab, setActiveTab, user, login, logou
     { id: 'hub', label: t('nav.hub'), icon: Radio },
     { id: 'profile', label: t('nav.profile'), icon: User },
   ];
-
+  
   return (
     <nav className="w-full h-full flex flex-col p-4 md:p-8 gap-4 overflow-y-auto no-scrollbar relative">
-      <div className="hidden md:block mb-4 shrink-0">
-        <div className="flex items-center gap-3 text-accent mb-2">
-          <Brain size={28} className="text-accent" />
-          <div className="serif italic text-2xl text-text leading-none font-bold">
-            {t('nav.title')}
+      <div className="hidden md:flex items-start justify-between mb-4 shrink-0">
+        <div>
+          <div className="flex items-center gap-3 text-accent mb-2 cursor-pointer" onClick={() => setActiveTab('flow')}>
+            <Brain size={28} className="text-accent" />
+            <div className="serif italic text-2xl text-text leading-none font-bold">
+              {t('nav.title')}
+            </div>
+          </div>
+          <div className="text-[10px] font-bold tracking-[0.3em] uppercase text-muted mb-1 opacity-60">
+            {t('nav.subtitle')}
           </div>
         </div>
-        <div className="text-[10px] font-bold tracking-[0.3em] uppercase text-muted mb-1 opacity-60">
-          {t('nav.subtitle')}
-        </div>
+        {onToggleSidebar && (
+          <button 
+            onClick={onToggleSidebar}
+            className="p-2 text-muted hover:text-text hover:bg-surface rounded-xl transition-colors shrink-0"
+            title="Menüyü Kapat"
+          >
+            <PanelLeftClose size={20} />
+          </button>
+        )}
       </div>
 
       {/* User Auth Section */}
@@ -84,20 +135,35 @@ export default function Navigation({ activeTab, setActiveTab, user, login, logou
       </div>
 
       <div className="mt-auto pt-4 flex flex-col gap-3 shrink-0">
-        <div className="flex gap-2">
+        <div className="grid grid-cols-4 gap-2">
+
+          {/* Dark Mode Toggle */}
+          <button
+            onClick={toggleDarkMode}
+            className="col-span-1 h-[60px] flex flex-col items-center justify-center gap-1.5 p-2 rounded-2xl transition-all duration-300 text-[10px] font-bold uppercase tracking-widest border-2 border-border text-muted hover:text-text hover:border-accent hover:bg-surface"
+            title={isDark ? 'Light Mode' : 'Dark Mode'}
+          >
+            {isDark ? <Sun size={16} className="shrink-0" /> : <Moon size={16} className="shrink-0" />}
+            <span className="hidden xl:inline leading-none">{isDark ? 'LIGHT' : 'DARK'}</span>
+          </button>
+
+          
           <button
             onClick={() => setLang(lang === 'tr' ? 'en' : 'tr')}
-            className="flex-1 flex items-center justify-center gap-2 p-3 rounded-2xl transition-all duration-300 text-xs font-bold uppercase tracking-widest border-2 border-border text-muted hover:text-text hover:border-accent"
+            className="col-span-1 h-[60px] flex flex-col items-center justify-center gap-1.5 p-2 rounded-2xl transition-all duration-300 text-[10px] font-bold uppercase tracking-widest border-2 border-border text-muted hover:text-text hover:border-accent hover:bg-surface"
           >
-            <Globe size={18} /> {lang === 'tr' ? 'EN' : 'TR'}
+            <Globe size={16} className="shrink-0" />
+            <span className="leading-none">{lang === 'tr' ? 'EN' : 'TR'}</span>
           </button>
+          
           <button
             onClick={onToggleLofi}
-            className={`flex-[2] flex items-center justify-center gap-2 p-3 rounded-2xl transition-all duration-300 text-[10px] sm:text-xs font-bold uppercase tracking-widest border-2 ${
-              isLofiPlaying ? 'bg-[#1DB954] text-white border-[#1DB954]/20 shadow-[0_0_15px_rgba(29,185,84,0.4)]' : 'border-border text-muted hover:text-text hover:border-accent'
+            className={`col-span-2 h-[60px] flex flex-col items-center justify-center gap-1.5 p-2 rounded-2xl transition-all duration-300 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest border-2 overflow-hidden ${
+              isLofiPlaying ? 'bg-[#1DB954] text-white border-[#1DB954]/20 shadow-[0_0_15px_rgba(29,185,84,0.4)]' : 'border-border text-muted hover:text-text hover:border-accent hover:bg-surface'
             }`}
           >
-            {isLofiPlaying ? t('nav.music_stop') : t('nav.music_play')}
+            <Radio size={16} className="shrink-0" />
+            <span className="truncate w-full text-center leading-none px-1">{isLofiPlaying ? t('nav.music_stop') : t('nav.music_play')}</span>
           </button>
         </div>
 

@@ -568,7 +568,7 @@ MANDATORY INSTRUCTIONS:
           value={formData.idea}
           onChange={e => set('idea', e.target.value)}
           className="w-full p-6 bg-surface border border-border rounded-[24px] focus:border-accent outline-none text-base min-h-[160px] transition-all scrollbar-hide"
-          placeholder={formData.tags ? `${formData.tags} üzerine çalışmaya devam et...` : "Bugün aklıma şu geldi..."}
+          placeholder={formData.tags ? `${formData.tags} üzerine çalışmaya devam et...` : t("Bugün aklıma şu geldi...")}
         />
       </div>
       <div className="space-y-2">
@@ -588,7 +588,7 @@ MANDATORY INSTRUCTIONS:
           value={formData.tags}
           onChange={e => set('tags', e.target.value)}
           className="w-full p-4 px-6 bg-surface border border-border rounded-full focus:border-accent outline-none text-sm transition-all"
-          placeholder="yazılım, tasarım (virgülle ayır)"
+          placeholder={t("yazılım, tasarım (virgülle ayır)")}
         />
       </div>
       <button
@@ -644,9 +644,9 @@ MANDATORY INSTRUCTIONS:
               <div className="w-full h-full p-4 flex flex-col gap-2">
                 <div className="flex items-center gap-2 border-b border-border pb-2">
                   <Quote size={16} className="text-accent" />
-                  <input value={m.name} onChange={(e) => { const nm = [...formData.media]; nm[i].name = e.target.value; setFormData({ ...formData, media: nm }); }} className="text-[10px] font-extrabold uppercase bg-transparent outline-none w-full" placeholder="NOT ADI" />
+                  <input value={m.name} onChange={(e) => { const nm = [...formData.media]; nm[i].name = e.target.value; setFormData({ ...formData, media: nm }); }} className="text-[10px] font-extrabold uppercase bg-transparent outline-none w-full" placeholder={t("NOT ADI")} />
                 </div>
-                <textarea value={m.content} onChange={(e) => { const nm = [...formData.media]; nm[i].content = e.target.value; setFormData({ ...formData, media: nm }); }} className="text-[10px] h-full w-full bg-transparent resize-none outline-none serif italic leading-relaxed" placeholder="Notlarını buraya yaz..." />
+                <textarea value={m.content} onChange={(e) => { const nm = [...formData.media]; nm[i].content = e.target.value; setFormData({ ...formData, media: nm }); }} className="text-[10px] h-full w-full bg-transparent resize-none outline-none serif italic leading-relaxed" placeholder={t("Notlarını buraya yaz...")} />
               </div>
             )}
             <button onClick={() => removeMedia(i)} className="absolute top-3 right-3 p-1.5 bg-danger text-white rounded-full opacity-0 md:group-hover:opacity-100 transition-opacity shadow-lg"><Trash2 size={12} /></button>
@@ -660,7 +660,7 @@ MANDATORY INSTRUCTIONS:
             {isDocAiLoading ? <Wand2 size={10} className="animate-spin" /> : <Sparkles size={10} />} Fikri Özetle
           </button>
         </div>
-        <textarea value={formData.doc} onChange={e => set('doc', e.target.value)} className="w-full p-4 bg-surface border border-border rounded-[24px] focus:border-accent outline-none text-sm min-h-[100px]" placeholder="Kod, not, karalama..." />
+        <textarea value={formData.doc} onChange={e => set('doc', e.target.value)} className="w-full p-4 bg-surface border border-border rounded-[24px] focus:border-accent outline-none text-sm min-h-[100px]" placeholder={t("Kod, not, karalama...")} />
       </div>
       <div className="flex items-start gap-4 p-5 bg-bg border border-border rounded-[24px]">
         <input type="checkbox" id="amateur" checked={formData.isAmateur} onChange={e => set('isAmateur', e.target.checked)} className="mt-1" />
@@ -801,7 +801,7 @@ MANDATORY INSTRUCTIONS:
                 onChange={e => set('q1', e.target.value)}
                 rows={3}
                 className="w-full p-5 bg-surface border border-border rounded-[20px] text-sm focus:border-accent outline-none resize-none leading-relaxed transition-colors"
-                placeholder={isRecording ? "Sizi dinliyorum..." : "Ne yapmaya çalıştım, neredeyim, nereye gidiyorum? (iki cümle yeter)"}
+                placeholder={isRecording ? t("Sizi dinliyorum...") : t("Ne yapmaya çalıştım, neredeyim, nereye gidiyorum? (iki cümle yeter)")}
               />
             </div>
 
@@ -820,7 +820,7 @@ MANDATORY INSTRUCTIONS:
                   value={formData.attrName}
                   onChange={e => set('attrName', e.target.value)}
                   className="w-full p-4 px-5 text-sm focus:bg-bg outline-none transition-colors"
-                  placeholder="Kimin izi var? (Austin Kleon vb.) — isteğe bağlı"
+                  placeholder={t("Kimin izi var? (Austin Kleon vb.) — isteğe bağlı")}
                 />
                 {/* Link — zorunlu eğer isim varsa */}
                 <input
@@ -828,7 +828,7 @@ MANDATORY INSTRUCTIONS:
                   value={formData.attrLink}
                   onChange={e => set('attrLink', e.target.value)}
                   className={`w-full p-4 px-5 text-sm focus:bg-bg outline-none transition-colors ${formData.attrName && !formData.attrLink ? 'bg-danger-soft/30' : ''}`}
-                  placeholder={formData.attrName ? "🔗 Link zorunlu — Kleon: linksiz atıf kullanışsız" : "🔗 Kaynak linki"}
+                  placeholder={formData.attrName ? t("🔗 Link zorunlu — Kleon: linksiz atıf kullanışsız") : t("🔗 Kaynak linki")}
                 />
               </div>
               {formData.attrName && !formData.attrLink && (
@@ -867,7 +867,7 @@ MANDATORY INSTRUCTIONS:
       )}
 
       {formData.rehberType && (
-        <button onClick={nextStep} className="w-full bg-text text-white py-4 rounded-xl font-bold text-sm tracking-widest uppercase hover:bg-black transition-all shadow-xl">
+        <button onClick={nextStep} className="w-full bg-[#1a0f2e] dark:bg-surface text-[#f4effc] dark:text-text py-4 rounded-xl font-bold text-sm tracking-widest uppercase hover:bg-black dark:hover:bg-surface/80 transition-all shadow-xl">
           {t('Önizleme →')}
         </button>
       )}
@@ -886,7 +886,7 @@ MANDATORY INSTRUCTIONS:
         </div>
       ) : (
         <div className="relative group">
-          <textarea value={formData.polishedStory} onChange={e => set('polishedStory', e.target.value)} className="w-full bg-surface p-8 pt-10 border border-border rounded-[32px] text-lg leading-relaxed text-text italic serif shadow-md min-h-[320px] focus:border-accent outline-none transition-all" placeholder="Hikaye oluşturuluyor..." />
+          <textarea value={formData.polishedStory} onChange={e => set('polishedStory', e.target.value)} className="w-full bg-surface p-8 pt-10 border border-border rounded-[32px] text-lg leading-relaxed text-text italic serif shadow-md min-h-[320px] focus:border-accent outline-none transition-all" placeholder={t("Hikaye oluşturuluyor...")} />
           <div className="absolute top-4 left-8 flex items-center gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
             <Type size={14} className="text-muted" /><span className="text-[9px] font-bold uppercase tracking-widest text-muted">{t('DÜZENLENEBİLİR')}</span>
           </div>
@@ -898,7 +898,7 @@ MANDATORY INSTRUCTIONS:
       )}
 
       {formData.rehberType ? (
-        <div className="bg-text text-white p-6 rounded-[24px] text-xs leading-relaxed text-center">
+        <div className="bg-[#1a0f2e] dark:bg-surface text-[#f4effc] dark:text-text p-6 rounded-[24px] text-xs leading-relaxed text-center shadow-md">
           <strong>{t('Kleon der ki:')}</strong> {t('"İyi bir fikir asla tam bitmez, sadece yayınlanır." Hatalarıyla kucakla. Bu senin')} <strong>{t('stoğun')}</strong>.
         </div>
       ) : (
@@ -942,7 +942,7 @@ MANDATORY INSTRUCTIONS:
           )}
         </div>
       </div>
-      <div className="bg-text text-white p-8 rounded-[32px] text-sm leading-relaxed mt-6">
+      <div className="bg-[#1a0f2e] dark:bg-surface text-[#f4effc] dark:text-text p-8 rounded-[32px] border dark:border-border text-sm leading-relaxed mt-6 shadow-xl">
         <strong>{t('Mükemmeliyetçilik Bir Hapishanedir:')}</strong> {t('Öleceksin. Bu yüzden bu kusurlu haliyle yayınla. Gerçek başarı sürekliliktedir.')}
       </div>
       <button onClick={publish} className="w-full bg-accent text-text py-5 rounded-full font-bold text-lg shadow-2xl mt-6">
@@ -957,14 +957,14 @@ MANDATORY INSTRUCTIONS:
         <h2 className="serif text-4xl italic text-text uppercase tracking-widest">{formData.rehberType ? 'STOK TAMAMLANDI' : 'BAŞARDIN ✓'}</h2>
       </div>
       {formData.rehberType ? (
-        <div className="bg-text text-white p-10 rounded-[48px] border shadow-2xl space-y-6">
+        <div className="bg-[#1a0f2e] dark:bg-surface text-[#f4effc] dark:text-text p-10 rounded-[48px] border dark:border-border shadow-2xl space-y-6">
           <h3 className="text-xl font-bold uppercase tracking-[0.2em]">{t('Kalıcı Bir Değer Yarattın')}</h3>
           <p className="text-base italic leading-relaxed opacity-80 serif">{t('"Fikirlerinizi stoklayın. Onları biriktirin, düzenleyin ve başkalarına fayda sağlayacak bir bütüne dönüştürün."')}</p>
           <div className="pt-4 opacity-50 text-[10px] uppercase tracking-widest">{t('— Austin Kleon, Show Your Work')}</div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-text text-white p-8 rounded-[32px] text-xs leading-relaxed text-left border shadow-2xl"><strong>{t('Bugün bir iz bıraktın.')}</strong> {t('Austin Kleon: "Başkalarının işlerini çalın, kendi stilinizi harmanlayın."')}</div>
+          <div className="bg-[#1a0f2e] dark:bg-surface text-[#f4effc] dark:text-text p-8 rounded-[32px] text-xs leading-relaxed text-left border dark:border-border shadow-2xl"><strong>{t('Bugün bir iz bıraktın.')}</strong> {t('Austin Kleon: "Başkalarının işlerini çalın, kendi stilinizi harmanlayın."')}</div>
           <div className="bg-green-soft border border-green/20 p-8 rounded-[32px] text-xs text-green leading-relaxed text-left shadow-sm"><strong>{t('Sabbatical Başladı:')}</strong> {t('Cihazları kapat. Bir ağaca bak. Köpeğini gezdir.')}</div>
         </div>
       )}
@@ -974,7 +974,7 @@ MANDATORY INSTRUCTIONS:
           {isNextLineAiLoading && <Wand2 size={16} className="animate-spin text-accent" />}
         </div>
         <div className="relative">
-          <textarea value={formData.nextLine} onChange={e => set('nextLine', e.target.value)} className="w-full p-8 bg-surface border border-border rounded-[32px] text-lg serif italic focus:border-accent outline-none shadow-md transition-all" placeholder={isNextLineAiLoading ? 'AI öneri hazırlıyor...' : 'Yarınki işime şuradan başlayacağım...'} />
+          <textarea value={formData.nextLine} onChange={e => set('nextLine', e.target.value)} className="w-full p-8 bg-surface border border-border rounded-[32px] text-lg serif italic focus:border-accent outline-none shadow-md transition-all" placeholder={isNextLineAiLoading ? t('AI öneri hazırlıyor...') : t('Yarınki işime şuradan başlayacağım...')} />
           <button onClick={handleGenerateNextLine} disabled={isNextLineAiLoading} className="absolute top-4 right-4 text-accent/40 hover:text-accent transition-colors"><Sparkles size={18} /></button>
         </div>
       </div>

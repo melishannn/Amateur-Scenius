@@ -33,9 +33,6 @@ export default function Profile({ user, login, logout }: ProfileProps) {
                 <div className="flex items-center gap-2 text-xs text-muted font-mono bg-bg px-3 py-1.5 rounded-lg border border-border/50">
                   <Mail size={12} /> {user.email}
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted font-mono bg-bg px-3 py-1.5 mt-2 rounded-lg border border-border/50 w-fit">
-                  {t('profile.age')}
-                </div>
               </div>
             </div>
 
@@ -64,7 +61,7 @@ export default function Profile({ user, login, logout }: ProfileProps) {
                 {t('profile.guest_desc')}
               </div>
             </div>
-            
+
             <div className="pt-4">
               <button onClick={login} className="flex items-center justify-center gap-3 w-full bg-gradient-to-br from-[#cdb4db] to-[#a2d2ff] hover:from-[#bfa1d0] hover:to-[#8dbff4] text-white py-4 px-6 rounded-2xl font-bold text-sm shadow-[0_4px_16px_rgba(205,180,219,0.5)] transition-all">
                 {t('profile.login_btn')}

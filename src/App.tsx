@@ -16,6 +16,7 @@ export default function App() {
   const [user, setUser] = useState<{name: string, email: string, uid: string} | null>(null);
   const [skippedAuth, setSkippedAuth] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isLofiPlaying, setIsLofiPlaying] = useState(false);
   const [appState, setAppState] = useState<AppState>(() => {
     const postsSaved = localStorage.getItem('scenius_posts');
@@ -201,7 +202,8 @@ export default function App() {
         <motion.div 
           animate={{ x: [0, 80, -40, 0], y: [0, 60, 100, 0], scale: [1, 1.1, 0.9, 1] }}
           transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="absolute w-80 h-80 md:w-[45rem] md:h-[45rem] bg-accent-soft top-[-10%] left-[-10%] opacity-40 mix-blend-multiply rounded-[40%_60%_70%_30%] blur-[90px] md:blur-[140px] z-0 pointer-events-none" 
+          style={{ background: 'radial-gradient(circle, rgba(167, 139, 250, 0.15) 0%, transparent 70%)' }}
+          className="absolute w-[800px] h-[800px] md:w-[1200px] md:h-[1200px] top-[-20%] left-[-20%] z-0 pointer-events-none transform-gpu" 
         />
         <AuthGate onLogin={login} onSkip={() => setSkippedAuth(true)} />
       </div>
@@ -224,7 +226,8 @@ export default function App() {
           scale: [1, 1.1, 0.9, 1],
         }}
         transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-        className="absolute w-80 h-80 md:w-[45rem] md:h-[45rem] bg-accent-soft top-[-10%] left-[-10%] opacity-40 mix-blend-multiply rounded-[40%_60%_70%_30%] blur-[90px] md:blur-[140px] z-0 pointer-events-none" 
+        style={{ background: 'radial-gradient(circle, rgba(167, 139, 250, 0.12) 0%, transparent 70%)' }}
+        className="absolute w-[800px] h-[800px] md:w-[1200px] md:h-[1200px] top-[-20%] left-[-20%] z-0 pointer-events-none transform-gpu" 
       />
       <motion.div 
         animate={{
@@ -233,7 +236,8 @@ export default function App() {
           scale: [0.9, 1.2, 1, 0.9],
         }}
         transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-        className="absolute w-80 h-80 md:w-[40rem] md:h-[40rem] bg-blue-soft bottom-[-10%] right-[-5%] opacity-40 mix-blend-multiply rounded-[60%_40%_30%_70%] blur-[90px] md:blur-[140px] z-0 pointer-events-none" 
+        style={{ background: 'radial-gradient(circle, rgba(134, 217, 202, 0.1) 0%, transparent 70%)' }}
+        className="absolute w-[600px] h-[600px] md:w-[1000px] md:h-[1000px] bottom-[-15%] right-[-10%] z-0 pointer-events-none transform-gpu" 
       />
       <motion.div 
         animate={{
@@ -242,20 +246,44 @@ export default function App() {
           scale: [1, 0.8, 1.1, 1],
         }}
         transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
-        className="absolute w-80 h-80 md:w-[35rem] md:h-[35rem] bg-danger-soft top-[30%] left-[20%] opacity-30 mix-blend-multiply rounded-[50%_50%_60%_40%] blur-[90px] md:blur-[120px] z-0 pointer-events-none" 
+        style={{ background: 'radial-gradient(circle, rgba(239, 130, 130, 0.08) 0%, transparent 70%)' }}
+        className="absolute w-[500px] h-[500px] md:w-[800px] md:h-[800px] top-[20%] left-[10%] z-0 pointer-events-none transform-gpu" 
       />
 
-      <div className="hidden md:flex flex-col shrink-0 md:w-64 border-r border-border glass z-30">
-        <Navigation 
-           activeTab={activeTab} 
-           setActiveTab={setActiveTab} 
-           user={user}
-           login={login}
-           logout={logout}
-           onToggleLofi={() => setIsLofiPlaying(!isLofiPlaying)}
-           isLofiPlaying={isLofiPlaying}
-        />
-      </div>
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div 
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 256, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="hidden md:flex flex-col shrink-0 border-r border-border z-30 bg-bg/80 backdrop-blur-md"
+          >
+            <div className="w-64 h-full">
+              <Navigation 
+                 activeTab={activeTab} 
+                 setActiveTab={setActiveTab} 
+                 user={user}
+                 login={login}
+                 logout={logout}
+                 onToggleLofi={() => setIsLofiPlaying(!isLofiPlaying)}
+                 isLofiPlaying={isLofiPlaying}
+                 onToggleSidebar={() => setIsSidebarOpen(false)}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {!isSidebarOpen && (
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          className="hidden md:flex fixed top-8 left-8 z-40 p-3 bg-surface border border-border/50 shadow-lg rounded-2xl text-text hover:text-accent hover:border-accent hover:shadow-[0_0_20px_rgba(124,92,255,0.2)] transition-all"
+          title="Menüyü Aç"
+        >
+          <Menu size={20} />
+        </button>
+      )}
 
       <main className="flex-1 overflow-y-auto no-scrollbar relative z-10 pt-16 md:pt-0 pb-28 md:pb-0">
         <div className="w-full max-w-3xl mx-auto px-4 py-8 md:p-16">
@@ -305,7 +333,7 @@ export default function App() {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#cdb4db] to-[#a2d2ff] flex items-center justify-center text-white font-bold text-sm shadow-md">
               ✦
             </div>
-            <div className="serif text-[1rem] text-[#1a0f2e] font-bold leading-tight">Amateur Scenius</div>
+            <div className="serif text-[1rem] text-[#1a0f2e] font-bold leading-tight cursor-pointer" onClick={() => { setActiveTab('flow'); setIsMobileMenuOpen(false); }}>Amateur Scenius</div>
           </div>
         </div>
         <button 
