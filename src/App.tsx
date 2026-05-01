@@ -5,6 +5,7 @@ import Cabinet from './components/Cabinet';
 import Hub from './components/Hub';
 import Profile from './components/Profile';
 import AuthGate from './components/AuthGate';
+import { AppTour } from './components/AppTour';
 import { Brain, LogOut, User, LayoutDashboard, Archive, Radio, Database, Menu, X } from 'lucide-react';
 import { Post, AppState } from './types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -18,6 +19,8 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isLofiPlaying, setIsLofiPlaying] = useState(false);
+  const [isTourRunning, setIsTourRunning] = useState(false);
+  const [tourStepIndex, setTourStepIndex] = useState(0);
   const [appState, setAppState] = useState<AppState>(() => {
     const postsSaved = localStorage.getItem('scenius_posts');
     let chainSaved = localStorage.getItem('scenius_chain');
@@ -148,6 +151,39 @@ export default function App() {
       window.removeEventListener('start-mini-rehber', handleSwitchToFlow);
     };
   }, []);
+
+  useEffect(() => {
+    const handleStartTour = (e?: any) => {
+      let startIndex = 0;
+      if (e?.detail?.step !== undefined) {
+        startIndex = e.detail.step;
+      } else {
+        // Full tour starts from step 0
+        startIndex = 0;
+      }
+      setTourStepIndex(startIndex);
+      setIsTourRunning(true);
+    };
+
+    window.addEventListener('start-tour', handleStartTour);
+    return () => {
+      window.removeEventListener('start-tour', handleStartTour);
+    };
+  }, [activeTab]);
+
+  useEffect(() => {
+    const handleNextTourStep = () => {
+      if (isTourRunning) {
+        setTourStepIndex(prev => prev + 1);
+      }
+    };
+    window.addEventListener('wizard-next-step', handleNextTourStep);
+    window.addEventListener('wizard-published', handleNextTourStep);
+    return () => {
+      window.removeEventListener('wizard-next-step', handleNextTourStep);
+      window.removeEventListener('wizard-published', handleNextTourStep);
+    };
+  }, [isTourRunning]);
 
   const deletePost = (id: number) => {
     setAppState((prev) => ({
@@ -412,6 +448,16 @@ export default function App() {
           })}
         </div>
       </div>
+
+      <AppTour 
+        run={isTourRunning}
+        stepIndex={tourStepIndex}
+        setStepIndex={setTourStepIndex}
+        onTourEnd={() => setIsTourRunning(false)}
+        setActiveTab={setActiveTab}
+        isSidebarOpen={isSidebarOpen}
+        setIsSidebarOpen={setIsSidebarOpen}
+      />
     </div>
   );
 }

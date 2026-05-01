@@ -106,6 +106,16 @@ type DeleteTarget = {
   count: number;
 };
 
+const HelpTrigger = ({ onClick }: { onClick: () => void }) => (
+  <button 
+    onClick={(e) => { e.stopPropagation(); onClick(); }}
+    className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-accent/10 text-accent text-[10px] font-bold hover:bg-accent hover:text-white transition-all cursor-help border border-accent/20"
+    title="Neden ve Nasıl?"
+  >
+    ?
+  </button>
+);
+
 // ─── ANA COMPONENT ────────────────────────────────────────────────────────────
 export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, addPost, deletePost, deleteTag, publishPost, updatePostTags, archivePostsByTag }: CabinetProps) {
   const { t } = useLanguage();
@@ -369,7 +379,10 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
 
       {/* BAŞLIK */}
       <div className="space-y-4 mb-10">
-        <h2 className="serif text-4xl italic text-text">{t('Merak Kabinesi')}</h2>
+        <h2 className="serif text-4xl italic text-text" id="nav-cabinet">
+          {t('Merak Kabinesi')}
+          <HelpTrigger onClick={() => window.dispatchEvent(new CustomEvent('start-tour', { detail: { step: 6 } }))} />
+        </h2>
         <p className="text-sm text-muted leading-relaxed serif italic">
           {t('Her eser bir müze objesidir. Kategorilere tıkla, serüvenin galerisini gör. Favori fikirlerini yıldızla.')}
         </p>
@@ -402,6 +415,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
           <div className="flex items-center gap-3 py-2 -mx-4 px-4 md:mx-0 md:px-0 overflow-x-auto tag-cloud-scroll border-b border-border/50 pb-4">
             <div className="flex items-center gap-2 shrink-0 pr-4 border-r border-border">
               <span className="text-[10px] font-bold text-muted uppercase tracking-widest">{t('Etiketler:')}</span>
+              <HelpTrigger onClick={() => window.dispatchEvent(new CustomEvent('start-tour', { detail: { step: 7 } }))} />
             </div>
             <div className="flex gap-2">
               {allTags
@@ -425,12 +439,13 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                         <span className="relative z-10">{tag}</span>
                         {(hasBucketAlert || hasMilestoneAlert) && (
                           <div 
+                            id="stock-wizard-target"
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedTag(tag);
                               setShowStockAlertForTag(tag === showStockAlertForTag ? null : tag);
                             }}
-                            className="relative z-20 p-1 -m-1 hover:bg-black/5 rounded-full transition-colors cursor-pointer group/alert"
+                            className="stock-chip relative z-20 p-1 -m-1 hover:bg-black/5 rounded-full transition-colors cursor-pointer group/alert"
                           >
                             <AlertTriangle 
                               size={12} 
@@ -588,7 +603,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                         setSelectedPostId(p.id);
                       }
                     }}
-                    className={`relative glass-card border p-8 rounded-[40px] shadow-sm hover:shadow-lg transition-all duration-500 cursor-pointer group hover:-translate-y-1 ${selectedItemIds.includes(p.id) ? 'border-accent ring-2 ring-accent/20' : 'border-border'}`}
+                    className={`cabinet-card relative glass-card border p-8 rounded-[40px] shadow-sm hover:shadow-lg transition-all duration-500 cursor-pointer group hover:-translate-y-1 ${selectedItemIds.includes(p.id) ? 'border-accent ring-2 ring-accent/20' : 'border-border'}`}
                   >
                     <div className="absolute top-6 left-6 z-10" onClick={(e) => e.stopPropagation()}>
                       <input
@@ -598,7 +613,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                         className="w-5 h-5 rounded border-border text-accent focus:ring-accent cursor-pointer"
                       />
                     </div>
-                    <div className="flex justify-between items-center mb-6 pl-8">
+                    <div className="flex justify-between items-center mb-6 pl-8 cabinet-card-actions">
                       <span className="text-[10px] font-bold tracking-[0.3em] text-muted uppercase">{p.date}</span>
                       <div className="flex items-center gap-3">
                         {!p.isPublished ? (
@@ -701,7 +716,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
             className="space-y-6"
           >
             {Object.keys(groups).length === 0 ? (
-              <div className="glass-card border border-dashed border-border/80 p-20 rounded-[40px] text-center text-muted italic serif text-lg animate-pulse">
+              <div className="cabinet-empty-state glass-card border border-dashed border-border/80 p-20 rounded-[40px] text-center text-muted italic serif text-lg animate-pulse">
                 {t('Bu kategoride henüz bir müze objesi yok.')}
                 <br />
                 <span className="text-xs font-sans not-italic uppercase tracking-widest mt-4 block opacity-50">{t('Kayıp eserler aranıyor...')}</span>
@@ -734,7 +749,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                         </div>
 
                         <div className="pt-8 space-y-2">
-                          <div className="h-1.5 bg-text/5 dark:bg-black/30 border border-text/10 dark:border-white/10 rounded-full relative">
+                          <div className="tag-progress-bar h-1.5 bg-text/5 dark:bg-black/30 border border-text/10 dark:border-white/10 rounded-full relative">
                             <div
                               className="absolute top-0 left-0 h-full rounded-full transition-all duration-500 ease-out bg-white/80 dark:bg-white/60 backdrop-blur-md shadow-[0_0_10px_rgba(255,255,255,0.5)] dark:shadow-[0_0_12px_rgba(255,255,255,0.4)] border border-white/80 dark:border-white/50 group-hover:bg-white group-hover:shadow-[0_0_15px_rgba(255,255,255,0.9)] dark:group-hover:shadow-[0_0_20px_rgba(255,255,255,0.8)] dark:group-hover:border-white"
                               style={{ width: `${pct}%` }}
@@ -872,6 +887,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                 <div className="bg-bg border border-border p-8 rounded-[32px] space-y-4 shadow-inner">
                   <label className="text-[10px] font-bold text-muted tracking-[0.3em] uppercase opacity-60">{t('Yeniden Ziyaret Notu')}</label>
                   <textarea
+                    id="cabinet-note-input"
                     value={notes[selectedPost.id] || ''}
                     onChange={(e) => saveNote(selectedPost.id, e.target.value)}
                     className="w-full bg-transparent border-none focus:ring-0 text-sm italic serif text-text/80 resize-none outline-none leading-relaxed"
@@ -1109,6 +1125,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
               className="fixed inset-0 bg-text/40 backdrop-blur-xl z-[100]"
             />
             <motion.div
+              id="stockDrawer"
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               className="fixed inset-y-0 right-0 w-full md:w-[600px] bg-bg shadow-2xl z-[110] flex flex-col border-l border-border"

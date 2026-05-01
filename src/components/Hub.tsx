@@ -2,6 +2,16 @@ import { Post } from '../types';
 import { Music, Type } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
+const HelpTrigger = ({ onClick }: { onClick: () => void }) => (
+  <button 
+    onClick={(e) => { e.stopPropagation(); onClick(); }}
+    className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-accent/10 text-accent text-[10px] font-bold hover:bg-accent hover:text-white transition-all cursor-help border border-accent/20"
+    title="Neden ve Nasıl?"
+  >
+    ?
+  </button>
+);
+
 export default function Hub({ posts }: { posts: Post[] }) {
   const { t } = useLanguage();
 
@@ -15,7 +25,10 @@ export default function Hub({ posts }: { posts: Post[] }) {
   return (
     <div className="space-y-10 pb-32">
       <div className="space-y-2">
-        <h2 className="serif text-4xl italic text-text">{t('hub.title')}</h2>
+        <h2 className="serif text-4xl italic text-text" id="nav-hub">
+          {t('hub.title')}
+          <HelpTrigger onClick={() => window.dispatchEvent(new CustomEvent('start-tour', { detail: { step: 8 } }))} />
+        </h2>
         <p className="text-sm text-muted leading-relaxed serif italic">
           {t('hub.subtitle')}
         </p>

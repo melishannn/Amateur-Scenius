@@ -113,6 +113,7 @@ export default function Navigation({ activeTab, setActiveTab, user, login, logou
           return (
             <button
               key={tab.id}
+              id={`nav-${tab.id}`}
               onClick={() => setActiveTab(tab.id)}
               className={`
                 flex items-center gap-3 px-4 py-3 md:px-5 md:py-3 rounded-2xl transition-all duration-300 text-sm whitespace-nowrap shrink-0 w-full text-left
@@ -139,6 +140,7 @@ export default function Navigation({ activeTab, setActiveTab, user, login, logou
 
           {/* Dark Mode Toggle */}
           <button
+            id="themeBtn"
             onClick={toggleDarkMode}
             className="col-span-1 h-[60px] flex flex-col items-center justify-center gap-1.5 p-2 rounded-2xl transition-all duration-300 text-[10px] font-bold uppercase tracking-widest border-2 border-border text-muted hover:text-text hover:border-accent hover:bg-surface"
             title={isDark ? 'Light Mode' : 'Dark Mode'}
@@ -157,6 +159,7 @@ export default function Navigation({ activeTab, setActiveTab, user, login, logou
           </button>
           
           <button
+            id="lofiBtn"
             onClick={onToggleLofi}
             className={`col-span-2 h-[60px] flex flex-col items-center justify-center gap-1.5 p-2 rounded-2xl transition-all duration-300 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest border-2 overflow-hidden ${
               isLofiPlaying ? 'bg-[#1DB954] text-white border-[#1DB954]/20 shadow-[0_0_15px_rgba(29,185,84,0.4)]' : 'border-border text-muted hover:text-text hover:border-accent hover:bg-surface'
@@ -185,9 +188,18 @@ export default function Navigation({ activeTab, setActiveTab, user, login, logou
           />
         </motion.div>
 
-        {/* Footer / Credits */}
-        <div className="text-[10px] text-center text-muted uppercase tracking-widest opacity-40 pb-4 md:pb-0">
-          {t('nav.credits')}
+        {/* Footer / Credits and Tour Button */}
+        <div className="flex items-center justify-center gap-4 pb-4 md:pb-0">
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('start-tour'))}
+            className="w-6 h-6 flex items-center justify-center rounded-full border border-border text-muted hover:text-accent hover:border-accent transition-colors text-xs font-bold"
+            title="Turu Başlat"
+          >
+            ?
+          </button>
+          <div className="text-[10px] text-center text-muted uppercase tracking-widest opacity-40">
+            {t('nav.credits')}
+          </div>
         </div>
       </div>
     </nav>

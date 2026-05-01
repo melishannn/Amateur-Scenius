@@ -96,6 +96,16 @@ const GUIDE_FIELDS = {
   ],
 } as const;
 
+const HelpTrigger = ({ onClick }: { onClick: () => void }) => (
+  <button 
+    onClick={(e) => { e.stopPropagation(); onClick(); }}
+    className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-accent/10 text-accent text-[10px] font-bold hover:bg-accent hover:text-white transition-all cursor-help border border-accent/20"
+    title="Neden ve Nasıl?"
+  >
+    ?
+  </button>
+);
+
 export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, saveHemingway }: WizardProps) {
   const { t } = useLanguage();
   const [step, setStep] = useState(0);
@@ -105,6 +115,17 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
   const [isNextLineAiLoading, setIsNextLineAiLoading] = useState(false);
   const [vampireQuote, setVampireQuote] = useState<{ quote: string; author: string; warnings: string[] } | null>(null);
   const [isDocAiLoading, setIsDocAiLoading] = useState(false);
+
+  useEffect(() => {
+    const handleSetStep = (e: any) => {
+      if (e.detail?.step !== undefined) {
+        setStep(e.detail.step);
+      }
+    };
+    window.addEventListener('set-wizard-step', handleSetStep);
+    return () => window.removeEventListener('set-wizard-step', handleSetStep);
+  }, []);
+
   const mediaInputRef = useRef<HTMLInputElement>(null);
 
   const [isRecording, setIsRecording] = useState(false);
@@ -261,14 +282,12 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
     if (prompt.includes('hashtag öner')) {
       return { text: 'fikir, not, gelişim' };
     }
-    if (prompt.includes('Vampir Testi')) {
-      const isVampire = Math.random() > 0.5;
+    if (prompt.includes('vampir uyarısı') || prompt.includes('Vampir Testi')) {
       return { 
         text: JSON.stringify({ 
-          isVampire, 
-          quote: isVampire ? "Paylaşmak için değil, göstermek için yapıyorsun." : "Paylaşım, kendi sürecinin belgeselidir.", 
+          quote: "Paylaşım, kendi sürecinin belgeselidir. Göstermekten korkma.", 
           author: "Simüle Austin Kleon", 
-          warnings: isVampire ? ["Sadece sonuca odaklanmışsın", "Etkileşim bağımlılığı seziyorum"] : []
+          warnings: ["Mükemmeliyetçilik", "Onaylanma ihtiyacı", "Gizlilik saplantısı"]
         }) 
       };
     }
@@ -305,7 +324,19 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
         `Konu: "${formData.idea}". Bu konuyla ilgili Austin Kleon / Steven Pressfield tarzı bir öğüt ve "vampir uyarısı" (yaratıcılığı öldüren şeyler) üret. JSON: { "quote": "...", "author": "...", "warnings": ["..."] }`,
         { responseMimeType: 'application/json' }
       );
-      if (r.text) setVampireQuote(JSON.parse(r.text));
+      if (r.text) {
+        try {
+          setVampireQuote(JSON.parse(r.text));
+        } catch (err) {
+          console.error("Vampire Quote Parse Error:", err);
+          // Fallback if parse fails
+          setVampireQuote({
+            quote: "Paylaşım bir cömertlik eylemidir, ego tatmini değil.",
+            author: "Austin Kleon",
+            warnings: ["Mükemmeliyetçilik", "Görünürlük korkusu"]
+          });
+        }
+      }
     } catch (e) { console.error(e); } finally { setIsVampireAiLoading(false); }
   };
 
@@ -378,6 +409,7 @@ MANDATORY INSTRUCTIONS:
 
   // ─── ADIM YÖNLENDİRME ──────────────────────────────────────────────────────
   const nextStep = () => {
+    window.dispatchEvent(new CustomEvent('wizard-next-step'));
     let target = step + 1;
     if (formData.rehberType) {
       if (step === 0) target = 2;
@@ -423,6 +455,7 @@ MANDATORY INSTRUCTIONS:
   };
 
   const publish = () => {
+    window.dispatchEvent(new CustomEvent('wizard-published'));
     addPost({
       id: Date.now(),
       content: formData.rehberType ? generateFinalStory() : generateFinalStory(formData.polishedStory || formData.q1),
@@ -541,7 +574,18 @@ MANDATORY INSTRUCTIONS:
           <p className="italic text-text text-left font-normal pl-5" style={{ fontFamily: 'Times New Roman, serif', fontSize: '13px' }}>"{hemingwayChain}"</p>
         </div>
       )}
-      <h2 className="serif text-4xl italic text-text mb-4">{t('Fikir Defteri')}</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="serif text-4xl italic text-text">
+          {t('Fikir Defteri')}
+          <HelpTrigger onClick={() => window.dispatchEvent(new CustomEvent('start-tour', { detail: { step: 0 } }))} />
+        </h2>
+        <button 
+          onClick={() => window.dispatchEvent(new CustomEvent('start-tour'))}
+          className="flex items-center gap-2 px-4 py-2 bg-accent/10 hover:bg-accent hover:text-white text-accent rounded-full text-[11px] font-bold uppercase tracking-widest transition-all shadow-sm border border-accent/20"
+        >
+          ✦ Kleon Playbook
+        </button>
+      </div>
 
       {formData.rehberType && (
         <div className="glass-card border border-accent/20 p-6 rounded-[24px] space-y-3 shadow-sm border-l-4 border-l-accent">
@@ -565,6 +609,7 @@ MANDATORY INSTRUCTIONS:
       <div className="space-y-2">
         <label className="text-[10px] font-bold tracking-widest text-muted uppercase ml-1">{t('Bugünkü fikir veya gözlem')}</label>
         <textarea
+          id="idea"
           value={formData.idea}
           onChange={e => set('idea', e.target.value)}
           className="w-full p-6 bg-surface border border-border rounded-[24px] focus:border-accent outline-none text-base min-h-[160px] transition-all scrollbar-hide"
@@ -584,6 +629,7 @@ MANDATORY INSTRUCTIONS:
           </button>
         </div>
         <input
+          id="tag-input"
           type="text"
           value={formData.tags}
           onChange={e => set('tags', e.target.value)}
@@ -600,8 +646,11 @@ MANDATORY INSTRUCTIONS:
     </div>,
 
     // STEP 1: 24 Saat Testi
-    <div key="s1" className="space-y-8 text-center py-10">
-      <h2 className="serif text-4xl italic text-text">{t('24 Saat Testi')}</h2>
+    <div key="s1" className="space-y-8 text-center py-10" id="step-24h">
+      <h2 className="serif text-4xl italic text-text">
+        {t('24 Saat Testi')}
+        <HelpTrigger onClick={() => window.dispatchEvent(new CustomEvent('start-tour', { detail: { step: 1 } }))} />
+      </h2>
       <p className="text-lg text-muted serif italic max-w-sm mx-auto leading-relaxed">
         {t('Bu fikri 24 saatten uzun süredir düşünüyor musun?')}
       </p>
@@ -612,8 +661,11 @@ MANDATORY INSTRUCTIONS:
     </div>,
 
     // STEP 2: Döküman & Artıklar
-    <div key="s2" className="space-y-6">
-      <h2 className="serif text-4xl italic text-text">{t('Döküman & Artıklar')}</h2>
+    <div key="s2" className="space-y-6" id="wizard-media">
+      <h2 className="serif text-4xl italic text-text">
+        {t('Döküman & Artıklar')}
+        <HelpTrigger onClick={() => window.dispatchEvent(new CustomEvent('start-tour', { detail: { step: 2 } }))} />
+      </h2>
       <div className="flex flex-wrap gap-3 py-2">
         <button onClick={() => mediaInputRef.current?.click()} className="flex flex-col items-center justify-center w-24 h-24 bg-surface border-2 border-dashed border-border rounded-[24px] hover:border-accent transition-all group">
           <ImageIcon size={24} className="text-muted group-hover:text-accent" />
@@ -660,7 +712,13 @@ MANDATORY INSTRUCTIONS:
             {isDocAiLoading ? <Wand2 size={10} className="animate-spin" /> : <Sparkles size={10} />} Fikri Özetle
           </button>
         </div>
-        <textarea value={formData.doc} onChange={e => set('doc', e.target.value)} className="w-full p-4 bg-surface border border-border rounded-[24px] focus:border-accent outline-none text-sm min-h-[100px]" placeholder={t("Kod, not, karalama...")} />
+        <textarea 
+          id="raw-material"
+          value={formData.doc} 
+          onChange={e => set('doc', e.target.value)} 
+          className="w-full p-4 bg-surface border border-border rounded-[24px] focus:border-accent outline-none text-sm min-h-[100px]" 
+          placeholder={t("Kod, not, karalama...")} 
+        />
       </div>
       <div className="flex items-start gap-4 p-5 bg-bg border border-border rounded-[24px]">
         <input type="checkbox" id="amateur" checked={formData.isAmateur} onChange={e => set('isAmateur', e.target.checked)} className="mt-1" />
@@ -673,8 +731,11 @@ MANDATORY INSTRUCTIONS:
     </div>,
 
     // STEP 3: So What?
-    <div key="s3" className="space-y-8">
-      <h2 className="serif text-4xl italic text-text">{t('So What? Testi')}</h2>
+    <div key="s3" className="space-y-8" id="so-what-step">
+      <h2 className="serif text-4xl italic text-text">
+        {t('So What? Testi')}
+        <HelpTrigger onClick={() => window.dispatchEvent(new CustomEvent('start-tour', { detail: { step: 3 } }))} />
+      </h2>
       <div className="bg-danger-soft border-l-4 border-danger p-6 rounded-[24px] text-sm text-danger leading-relaxed italic">
         <strong>{t('Sturgeon Yasası:')}</strong> {t('Her şeyin %90\'ı çöptür. Neyin iyi neyin kötü olduğunu hemen bilemeyebilirsin.')}
       </div>
@@ -688,7 +749,7 @@ MANDATORY INSTRUCTIONS:
     </div>,
 
     // STEP 4: Hikaye & Bağlam — ZENGİN FORM
-    <div key="s4" className="space-y-10">
+    <div key="s4" className="space-y-10" id="narrative-step">
       <div className="space-y-4">
         <button onClick={() => { reset(); window.dispatchEvent(new CustomEvent('exit-wizard')); }} className="flex items-center gap-2 text-[11px] font-bold text-muted uppercase tracking-widest border border-border px-4 py-2 rounded-xl hover:bg-bg transition-all">
           {t('← İptal')}
@@ -774,6 +835,7 @@ MANDATORY INSTRUCTIONS:
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted">{t('Hikaye')}</span>
+                  <HelpTrigger onClick={() => window.dispatchEvent(new CustomEvent('start-tour', { detail: { step: 4 } }))} />
                   <span className="text-[9px] text-muted opacity-40 hidden sm:inline">{t('— geçmiş · şimdi · gelecek')}</span>
                 </div>
                 <button
@@ -806,9 +868,12 @@ MANDATORY INSTRUCTIONS:
             </div>
 
             {/* PERDE 2 — Müze Etiketi: sadece kaynak linki zorunlu */}
-            <div className="space-y-2">
+            <div className="space-y-2" id="attribution-step">
               <div className="flex items-center justify-between">
-                <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted">{t('Müze Etiketi')} <span className="opacity-40 normal-case font-normal">{t('(isteğe bağlı)')}</span></span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted">{t('Müze Etiketi')} <span className="opacity-40 normal-case font-normal">{t('(isteğe bağlı)')}</span></span>
+                  <HelpTrigger onClick={() => window.dispatchEvent(new CustomEvent('start-tour', { detail: { step: 5 } }))} />
+                </div>
                 {formData.attrLink && (
                   <span className="text-[9px] text-green-600 font-bold">{t('✓ link var')}</span>
                 )}
@@ -874,7 +939,7 @@ MANDATORY INSTRUCTIONS:
     </div>,
 
     // STEP 5: Hikaye Önizleme / Düzenleme
-    <div key="s5" className="space-y-8">
+    <div key="s5" id="polished-story-preview" className="space-y-8">
       <div className="text-center space-y-2">
         <h2 className="serif text-4xl italic text-text">{formData.rehberType ? 'Rehber Önizleme' : 'Harmanlanan Hikaye'}</h2>
         <p className="text-[10px] font-bold text-muted uppercase tracking-[0.2em]">{formData.rehberType ? 'Son Kontrol & Yayına Hazırlık' : 'Düzenle, Süste ve Yayınla'}</p>
@@ -919,7 +984,7 @@ MANDATORY INSTRUCTIONS:
     </div>,
 
     // STEP 6: Son Kontroller & Vampir Testi
-    <div key="s6" className="space-y-6">
+    <div key="s6" className="space-y-6" id="vampire-step">
       <div className="flex items-center justify-between">
         <h2 className="serif text-4xl italic text-text">{t('Vampir Testi')}</h2>
         {isVampireAiLoading && <Wand2 size={24} className="animate-spin text-accent" />}
@@ -945,9 +1010,11 @@ MANDATORY INSTRUCTIONS:
       <div className="bg-[#1a0f2e] dark:bg-surface text-[#f4effc] dark:text-text p-8 rounded-[32px] border dark:border-border text-sm leading-relaxed mt-6 shadow-xl">
         <strong>{t('Mükemmeliyetçilik Bir Hapishanedir:')}</strong> {t('Öleceksin. Bu yüzden bu kusurlu haliyle yayınla. Gerçek başarı sürekliliktedir.')}
       </div>
-      <button onClick={publish} className="w-full bg-accent text-text py-5 rounded-full font-bold text-lg shadow-2xl mt-6">
-        {t('Gözünü kapat ve yayınla')}
-      </button>
+      <div id="wizard-actions">
+        <button onClick={publish} className="w-full bg-accent text-text py-5 rounded-full font-bold text-lg shadow-2xl mt-6">
+          {t('Gözünü kapat ve yayınla')}
+        </button>
+      </div>
     </div>,
 
     // STEP 7: Yayınlandı & Hemingway
@@ -973,7 +1040,7 @@ MANDATORY INSTRUCTIONS:
           <label className="text-[10px] font-bold tracking-widest text-muted uppercase block">{t('Hemingway Taktiği — yarın kaldığın yerden devam et:')}</label>
           {isNextLineAiLoading && <Wand2 size={16} className="animate-spin text-accent" />}
         </div>
-        <div className="relative">
+        <div className="relative" id="hemingway-step">
           <textarea value={formData.nextLine} onChange={e => set('nextLine', e.target.value)} className="w-full p-8 bg-surface border border-border rounded-[32px] text-lg serif italic focus:border-accent outline-none shadow-md transition-all" placeholder={isNextLineAiLoading ? t('AI öneri hazırlıyor...') : t('Yarınki işime şuradan başlayacağım...')} />
           <button onClick={handleGenerateNextLine} disabled={isNextLineAiLoading} className="absolute top-4 right-4 text-accent/40 hover:text-accent transition-colors"><Sparkles size={18} /></button>
         </div>
@@ -989,7 +1056,7 @@ MANDATORY INSTRUCTIONS:
   return (
     <div className="space-y-8 md:space-y-12 pb-32 max-w-lg mx-auto">
       {/* Adım göstergesi */}
-      <div className="sticky top-0 glass-panel z-20 py-4 -mx-4 px-4 md:static md:bg-transparent md:p-0 md:shadow-none md:border-transparent md:backdrop-blur-none">
+      <div id="step-indicator" className="sticky top-0 glass-panel z-20 py-4 -mx-4 px-4 md:static md:bg-transparent md:p-0 md:shadow-none md:border-transparent md:backdrop-blur-none">
         <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
           {labels.map((l, i) => (
             <div key={i} className="flex items-center gap-1.5 shrink-0 last:grow-0 grow">
