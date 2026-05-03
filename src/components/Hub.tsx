@@ -27,7 +27,7 @@ export default function Hub({ posts }: { posts: Post[] }) {
           <button 
             onClick={() => setIsInfoModalOpen(true)}
             className="flex items-center justify-center w-7 h-7 bg-accent/10 hover:bg-accent hover:text-white text-accent rounded-full text-[14px] font-bold transition-all shadow-sm border border-accent/20"
-            title="Bilgi"
+            title={t('wizard.bilgi')}
           >
             i
           </button>
@@ -44,11 +44,11 @@ export default function Hub({ posts }: { posts: Post[] }) {
         content={
           <div className="space-y-4">
             <div className="border-l-4 border-accent pl-3 py-1">
-              <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">Domain Sahibi Ol</h4>
-              <p className="text-sm italic">"Sosyal ağlar birer uydudur. Karargahın ise senin kontrolünde olmalıdır." — Austin Kleon</p>
+              <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">{t('hub.info_title')}</h4>
+              <p className="text-sm italic">{t('hub.info_quote')}</p>
             </div>
-            <p className="text-sm">Burası senin klanını topladığın yer. Tüm yayınlarını buradan yönet. Social Graph (Sosyal Grafiğini) burada kendin kontrol edersin.</p>
-            <p className="text-sm">Paylaşımlarının ne kadar enerji tükettiğini (Vampir Testi) ve hangi platformlarda ne kadar etki yarattığını buradan takip edebilirsin.</p>
+            <p className="text-sm">{t('hub.info_desc1')}</p>
+            <p className="text-sm">{t('hub.info_desc2')}</p>
           </div>
         }
       />

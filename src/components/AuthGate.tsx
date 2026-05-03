@@ -39,10 +39,14 @@ export default function AuthGate({ onLogin, onSkip }: AuthGateProps) {
     setError('');
     setGoogleLoading(true);
     try {
-      await loginWithGoogle();
+      const result = await loginWithGoogle();
+      if (!result) return; // User closed popup
       onLogin();
-    } catch (err) {
+    } catch (err: any) {
       handleError(err);
+      if (err.message?.includes('unauthorized-domain')) {
+        setError(t('Bu alan (domain) Firebase\'de yetkilendirilmemiş. Lütfen Console\'dan ekleyin.'));
+      }
     } finally {
       setGoogleLoading(false);
     }

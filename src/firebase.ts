@@ -3,22 +3,86 @@ import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChang
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
+// Use environment variable if available, otherwise fallback to config file
 const config = {
   ...firebaseConfig,
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseConfig.apiKey
 };
 
+// Check if API key is a placeholder
+const isPlaceholderKey = config.apiKey.includes('REPLACE') || config.apiKey.includes('PASTE');
+
 const app = initializeApp(config);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId); // CRITICAL: Database ID is required
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
+
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  };
+  const jsonError = JSON.stringify(errInfo);
+  console.error('Firestore Error: ', jsonError);
+  
+  // If it's a permission error, we throw the JSON string as instructed
+  if (errInfo.error.toLowerCase().includes('permission') || errInfo.error.toLowerCase().includes('insufficient')) {
+    throw new Error(jsonError);
+  }
+  
+  throw error;
+}
 
 // Simple connection check
 async function testConnection() {
+  if (isPlaceholderKey) {
+    console.error("Firebase API Key appears to be a placeholder. Please check your configuration.");
+    return;
+  }
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if(error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Please check your Firebase configuration.");
+  } catch (error: any) {
+    if (error.message?.includes('api-key-expired')) {
+      console.error("Firebase API Key has expired. Please renew it in the Firebase Console.");
+    } else if (error.message?.includes('the client is offline')) {
+      console.error("Please check your network connection.");
     }
   }
 }

@@ -6,7 +6,7 @@ import { Sparkles, Trash2, CheckCircle2, ChevronRight, Share2, ImageIcon, Mic, Q
 import { InfoModal } from './ui/InfoModal';
 import { GoogleGenAI } from "@google/genai";
 
-const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const genAI = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || (process.env.GEMINI_API_KEY as string) });
 
 interface WizardProps {
   addPost: (post: Post) => void;
@@ -21,81 +21,81 @@ const GUIDE_FIELDS = {
   technical: [
     {
       key: 'tools',
-      label: 'Araçlar, Kütüphaneler & Materyaller',
-      hint: 'Aaron Franklin\'in barbekü videolarında her aleti tek tek gösterdiği gibi — okuyucu bu listeyle hazırlığını yapabilmeli.',
-      placeholder: 'Örn: VS Code, Node.js v20, Tailwind CSS, Railway.app — her aracın adını ve neden tercih ettiğini yaz.',
+      labelKey: 'guide.technical.tools.label',
+      hintKey: 'guide.technical.tools.hint',
+      phKey: 'guide.technical.tools.ph',
     },
     {
       key: 's1',
-      label: 'Aşama 1 — Hazırlık & Kurulum (Fire Build)',
-      hint: 'Franklin önce ateşi nasıl yakacağını anlatır. Sen de sıfırdan nasıl başladığını göster. Ne kuruldu, ne yapılandırıldı?',
-      placeholder: 'Sıfırdan başlamak için ilk adım neydi? Kurulum, yapılandırma, proje iskeletini oluşturma...',
+      labelKey: 'guide.technical.s1.label',
+      hintKey: 'guide.technical.s1.hint',
+      phKey: 'guide.technical.s1.ph',
     },
     {
       key: 's2',
-      label: 'Aşama 2 — Asıl İş & Ticari Sırlar',
-      hint: '"Normalde kimse şunu söylemez ama..." ile başla. Franklin bu kısımda hiçbir tarif kitabında olmayan sıcaklık kontrolü tüyolarını paylaşır.',
-      placeholder: 'Asıl iş nasıl ilerledi? Hangi ipuçları fark yarattı? Başkalarının söylemediği ne var?',
+      labelKey: 'guide.technical.s2.label',
+      hintKey: 'guide.technical.s2.hint',
+      phKey: 'guide.technical.s2.ph',
     },
     {
       key: 's3',
-      label: 'Aşama 3 — Sonuç, Hatalar & Bir Dahaki Sefere',
-      hint: 'Sadece "çalıştı" deme. Neyin beklenmedik şekilde işe yaramadığını, ne düzelttiklerini de yaz. Bu dürüstlük güven inşa eder.',
-      placeholder: 'Sonuç nasıl çıktı? Hangi hatalar yapıldı? Aynı işi tekrar yapsan ne değiştirirdin?',
+      labelKey: 'guide.technical.s3.label',
+      hintKey: 'guide.technical.s3.hint',
+      phKey: 'guide.technical.s3.ph',
     },
   ],
   documentary: [
     {
       key: 'target',
-      label: 'Başlangıç Hedefi & Niyet',
-      hint: 'Kleon der ki: "Başladığın yer ile bitirdiğin yerin farklı olması, senin dürüstlüğünü gösterir." Ne yapmak istiyordun?',
-      placeholder: 'Bu projeye / fikre başlarken ne hayal ediyordun? Hangi sorunu çözmek istiyordun?',
+      labelKey: 'guide.documentary.target.label',
+      hintKey: 'guide.documentary.target.hint',
+      phKey: 'guide.documentary.target.ph',
     },
     {
       key: 'difficulties',
-      label: 'Throwing Rocks — İkinci Perde Zorlukları',
-      hint: '"Throwing rocks" = hikayenin ortasındaki engeller. Protagonist (sen) bunları aşmak zorunda. Hataları, çıkmaz sokakları, "hiç çalışmadı" anlarını utanmadan yaz.',
-      placeholder: 'Nerede tökezledin? Hangi varsayımların yanlış çıktı? Neler planlandığı gibi gitmedi? Ne kadar zaman kaybettin?',
+      labelKey: 'guide.documentary.difficulties.label',
+      hintKey: 'guide.documentary.difficulties.hint',
+      phKey: 'guide.documentary.difficulties.ph',
     },
     {
       key: 'lessons',
-      label: 'Sürecin Öğrettikleri & Çözüm',
-      hint: 'İyi bir belgesel kahramanın dönüşümünü gösterir. "Bunu yaşayarak öğrendim ki..." ile başla.',
-      placeholder: 'Sonunda ne elde ettin? Bu deneyim seni nasıl değiştirdi? Bir dahaki sefere ne yapardın?',
+      labelKey: 'guide.documentary.lessons.label',
+      hintKey: 'guide.documentary.lessons.hint',
+      phKey: 'guide.documentary.lessons.ph',
     },
   ],
   readingList: [
     {
       key: 'sources',
-      label: 'Kitaplar & Makaleler',
-      hint: '"Açık düğüm olmak" = başkalarına yol göstermek. Her kaynağın neden önemli olduğunu bir cümleyle açıkla. Sadece liste yapma.',
-      placeholder: 'Örn:\n- "Show Your Work" — Kleon (paylaşım korkusunu kırdı)\n- stripe.com/docs (en iyi API dökümantasyonu)\nLink ver, neden önerdiğini yaz.',
+      labelKey: 'guide.readingList.sources.label',
+      hintKey: 'guide.readingList.sources.hint',
+      phKey: 'guide.readingList.sources.ph',
     },
     {
       key: 'multimedia',
-      label: 'Videolar, Podcastler & Kurslar',
-      hint: 'Birisi 30 dakika harcayacaksa, neden bu içeriği seçmeli? Kendine sor: "Bu benim için ne değiştirdi?"',
-      placeholder: 'Örn:\n- Fireship YouTube (10 dakikada kavramı öğretti)\n- Syntax.fm Podcast — Ep.123 (deployment sorunuma çözüm buldu)',
+      labelKey: 'guide.readingList.multimedia.label',
+      hintKey: 'guide.readingList.multimedia.hint',
+      phKey: 'guide.readingList.multimedia.ph',
     },
     {
       key: 'follows',
-      label: 'Açık Düğümler — Kimler Takip Edilmeli?',
-      hint: 'Kleon der ki: "Seni besleyen insanlara işaret et. Bu seni küçültmez, tam tersine ağına katar." Her isim için "çünkü" diye açıkla.',
-      placeholder: 'Örn:\n- @kentcdodds — çünkü test yazımını demokratikleştirdi\n- Cassidy Williams — çünkü "amatörce" paylaşımın gücünü gösteriyor',
+      labelKey: 'guide.readingList.follows.label',
+      hintKey: 'guide.readingList.follows.hint',
+      phKey: 'guide.readingList.follows.ph',
     },
   ],
   oldVsNew: [
     {
       key: 'oldWay',
-      label: 'Eskiden Ne Biliyordum? Hangi Yanlış İnançlarım Vardı?',
-      hint: 'Kleon der ki: "Amatörlük bir başlangıç noktasıdır, utanılacak bir şey değil." Eski yanlışlarını paylaşmak okuyucuya "ben de yapabilirim" dedirtir.',
-      placeholder: 'Bu işe başladığımda şunlara inanıyordum:\n- Her şeyi anlamadan başlayamazdım (yanlış)\n- Kod "mükemmel" olmalıydı (yanlış)\n- Paylaşmak için "hazır" olmam gerekiyordu (yanlış)',
+      labelKey: 'guide.oldVsNew.oldWay.label',
+      hintKey: 'guide.oldVsNew.oldWay.hint',
+      phKey: 'guide.oldVsNew.oldWay.ph',
     },
     {
       key: 'newWay',
-      label: 'Şu An Neyi Farklı Yapıyorum? Kırılma Anım Ne Oldu?',
-      hint: 'Sadece "şimdi daha iyiyim" deme. Tam olarak ne değişti, ne zaman döndü? Somut bir "eureka" anı varsa onu anlat.',
-      placeholder: 'Kırılma noktam şuydu:\n- Bir hata mesajını 3 saat uğraştıktan sonra çözdüğümde...\nŞimdi farklı yaptığım şeyler:\n- Hataları "öğretmen" olarak görüyorum\n- Ham halleriyle paylaşıyorum',
+      labelKey: 'guide.oldVsNew.newWay.label',
+      hintKey: 'guide.oldVsNew.newWay.hint',
+      phKey: 'guide.oldVsNew.newWay.ph',
     },
   ],
 } as const;
@@ -130,19 +130,19 @@ const PolishedStoryDisplay = memo(({
         value={value} 
         onChange={e => onChange(e.target.value)} 
         className="w-full bg-surface p-8 pt-10 border border-border rounded-[32px] text-lg leading-relaxed text-text italic serif shadow-md min-h-[320px] focus:border-accent outline-none transition-all" 
-        placeholder={t("Hikaye oluşturuluyor...")} 
+        placeholder={t("wizard.story_generating")} 
       />
       <div className="absolute top-4 left-8 flex items-center gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
-        <Type size={14} className="text-muted" /><span className="text-[9px] font-bold uppercase tracking-widest text-muted">{t('DÜZENLENEBİLİR')}</span>
+        <Type size={14} className="text-muted" /><span className="text-[9px] font-bold uppercase tracking-widest text-muted">{t('wizard.editable')}</span>
       </div>
       <button 
         onClick={onRefresh} 
         disabled={isLoading} 
         className="absolute -top-3 -right-3 w-14 h-14 bg-accent text-text rounded-full flex flex-col items-center justify-center shadow-2xl hover:scale-110 transition-transform disabled:opacity-50 z-10 border-4 border-surface" 
-        title="AI ile Süsle"
+        title={t('wizard.polish_ai')}
       >
         {isLoading ? <Wand2 size={24} className="animate-spin" /> : <Sparkles size={24} />}
-        <span className="text-[7px] font-bold mt-0.5">{t('SÜSLE')}</span>
+        <span className="text-[7px] font-bold mt-0.5">{t('wizard.polish')}</span>
       </button>
     </div>
   );
@@ -200,8 +200,8 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
           reader.onloadend = async () => {
             const base64data = reader.result?.toString().split(',')[1];
             if (base64data) {
-              const r = await fetchGemini('gemini-2.5-flash', [
-                  "Ses dosyasındaki konuşmayı dinle ve anlatılanları tam olarak 4 cümle ile özetle. Başka hiçbir şey söyleme.",
+              const r = await fetchGemini('gemini-1.5-flash', [
+                  t("wizard.ai_audio_summary_prompt"),
                   { inlineData: { data: base64data, mimeType: 'audio/webm' } }
               ]);
               if (r.text) {
@@ -220,7 +220,7 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
       setIsRecording(true);
     } catch (e) {
       console.error(e);
-      alert('Mikrofona erişilemedi.');
+      alert(t('wizard.mikrofon_hata'));
     }
   };
 
@@ -324,12 +324,15 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
   const fetchGemini = useCallback(async (modelName: string, contents: any, config?: any) => {
     try {
       const response = await genAI.models.generateContent({
-        model: modelName || "gemini-3-flash-preview",
+        model: "gemini-1.5-flash", // Use standard stable model for better free tier accessibility
         contents: contents,
         config: config
       });
       return { text: response.text || "" };
-    } catch (error) {
+    } catch (error: any) {
+      if (error.message?.includes('429') || error.message?.includes('RESOURCE_EXHAUSTED')) {
+        alert("Günlük ücretsiz AI kullanım limitine ulaşıldı. Lütfen biraz bekleyip tekrar deneyin veya AI Studio ayarlarınızı kontrol edin.");
+      }
       console.error("Gemini API Error:", error);
       return { text: "" };
     }
@@ -338,7 +341,7 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
   const fetchGeminiStream = useCallback(async (modelName: string, contents: any, onChunk: (text: string) => void, config?: any) => {
     try {
       const response = await genAI.models.generateContentStream({
-        model: modelName || "gemini-3-flash-preview",
+        model: "gemini-1.5-flash", // Use standard stable model
         contents: contents,
         config: config
       });
@@ -352,7 +355,10 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
         }
       }
       return { text: fullText };
-    } catch (error) {
+    } catch (error: any) {
+      if (error.message?.includes('429') || error.message?.includes('RESOURCE_EXHAUSTED')) {
+        alert(t('wizard.ai_error_429'));
+      }
       console.error("Gemini Streaming Error:", error);
       return { text: "" };
     }
@@ -362,7 +368,7 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
     if (!formData.idea) return;
     setIsTagsAiLoading(true);
     try {
-      const r = await fetchGemini('gemini-3-flash-preview', `Fikir: "${formData.idea}". 3-5 Türkçe hashtag öner. Sadece virgülle ayır, # koyma. Örn: yazılım, tasarım`);
+      const r = await fetchGemini('gemini-1.5-flash', t('wizard.ai_tag_prompt', { idea: formData.idea, lang: t('app.lang_name') }));
       if (r.text) set('tags', r.text.trim());
     } catch (e) { console.error(e); } finally { setIsTagsAiLoading(false); }
   }, [formData.idea, fetchGemini, set]);
@@ -371,8 +377,8 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
     setIsVampireAiLoading(true);
     try {
       const r = await fetchGemini(
-        'gemini-3-flash-preview',
-        `Konu: "${formData.idea}". Bu konuyla ilgili Austin Kleon / Steven Pressfield tarzı bir öğüt ve "vampir uyarısı" (yaratıcılığı öldüren şeyler) üret. JSON: { "quote": "...", "author": "...", "warnings": ["..."] }`,
+        'gemini-1.5-flash',
+        t('wizard.ai_vampire_prompt', { idea: formData.idea }),
         { responseMimeType: 'application/json' }
       );
       if (r.text) {
@@ -395,14 +401,8 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
     setIsNextLineAiLoading(true);
     try {
       const r = await fetchGemini(
-        'gemini-3-flash-preview',
-        `Süreç: "${formData.polishedStory}". Hemingway Taktiği — yarım kalmış bir cümle öner. Yarın kaldığın yerden devam edebilmek için.
-
-MANDATORY INSTRUCTIONS:
-- You must output EXACTLY ONE sentence.
-- The sentence must be incomplete (ending with '...').
-- DO NOT INCLUDE ANY GREETINGS, CONVERSATION, OR COMMENTARY (e.g. no "Harika bir felsefe", no "İşte cümleniz", no quotes unless they are part of the sentence).
-- Example: "Kodun geri kalanını yazarken özellikle..."`
+        'gemini-1.5-flash',
+        t('wizard.ai_hemingway_prompt', { polishedStory: formData.polishedStory })
       );
       let result = r.text ? r.text.trim() : '';
       if (result.includes('"')) {
@@ -419,8 +419,8 @@ MANDATORY INSTRUCTIONS:
     setIsDocAiLoading(true);
     try {
       const r = await fetchGemini(
-        'gemini-3-flash-preview',
-        `Ham notlar: "${ctx}". Başlangıç fikri: "${formData.idea}". Bu notları 1-2 cümlelik vurucu bir "Amatör Scenius" fikrine dönüştür.`
+        'gemini-1.5-flash',
+        t('wizard.ai_scenius_prompt', { ctx, idea: formData.idea })
       );
       if (r.text) set('idea', r.text.trim());
     } catch (e) { console.error(e); } finally { setIsDocAiLoading(false); }
@@ -432,28 +432,14 @@ MANDATORY INSTRUCTIONS:
     try {
       const currentText = formData.polishedStory || formData.q1;
       await fetchGeminiStream(
-        'gemini-3-flash-preview',
-        `
-          Sen bir "Amatör Scenius" rehberisin. Kullanıcının ham hikayesini Austin Kleon felsefesine uygun zenginleştir. 
-          
-          ÖNEMLİ: 
-          1. Kesinlikle "BİRİNCİ TEKİL ŞAHIS" (Ben dili) kullan. "Konuşmacı şöyle dedi" deme, "Şunu yaptım, bunu fark ettim" de.
-          2. Sadece metin döndür, HTML kullanma. 
-          3. İşlemi yaparken belgedeki bilgileri ve (varsa) atıfları, bağlamla güçlü bir şekilde harmanla. 
-          4. Atıf/Kaynak ({formData.attrName}) belirtilmişse bunu metnin içine doğal bir şekilde yedir (Örn: "... Franklin'in dediği gibi barbekü ateşini yakarken...").
-
-          Metin: "${currentText}"
-          Düşünce: "${formData.idea}"
-          Bağlam: "${formData.doc}"
-          Atıf (Kaynak): "${formData.attrName} - ${formData.attrLink}"
-          
-          REÇEte:
-          1. Amatör merak diliyle açıkla
-          2. Duygusal derinlik: ne hissedildi, hangi engeller aşıldı
-          3. Somut metaforlar kullan
-          4. Kısa, orta, ve uzun cümleleri ritmik bir şekilde kullan. Satır atlayarak ferah paragraflar yap.
-          5. Okuyucuyu da denemeye davet eden bir bitiriş.
-        `,
+        'gemini-1.5-flash',
+        t('wizard.ai_enrich_prompt', { 
+          attrName: formData.attrName, 
+          currentText, 
+          idea: formData.idea, 
+          doc: formData.doc, 
+          attrLink: formData.attrLink 
+        }),
         (text) => set('polishedStory', text)
       );
     } catch (e) { 
@@ -604,18 +590,18 @@ MANDATORY INSTRUCTIONS:
       <div className="space-y-2">
         {/* Alan başlığı */}
         <label className="text-[11px] font-bold text-text uppercase tracking-widest block">
-          {def.label}
+          {t(def.labelKey)}
         </label>
         {/* Bağlam ipucu */}
         <p className="text-[10px] text-muted leading-relaxed italic border-l-2 border-accent/30 pl-3">
-          {def.hint}
+          {t(def.hintKey)}
         </p>
         <textarea
           value={value}
           onChange={e => onChange(e.target.value)}
           rows={rows}
           className="w-full p-4 bg-transparent border border-border rounded-[16px] text-sm focus:border-accent outline-none resize-none leading-relaxed transition-colors"
-          placeholder={def.placeholder}
+          placeholder={t(def.phKey)}
         />
       </div>
     );
@@ -634,12 +620,12 @@ MANDATORY INSTRUCTIONS:
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <h2 className="serif text-4xl italic text-text">
-            {t('Fikir Defteri')}
+            {t('wizard.idea_notebook_title')}
           </h2>
           <button 
             onClick={() => setIsInfoModalOpen(true)}
             className="flex items-center justify-center w-7 h-7 bg-accent/10 hover:bg-accent hover:text-white text-accent rounded-full text-[14px] font-bold transition-all shadow-sm border border-accent/20"
-            title="Bilgi"
+            title={t('wizard.bilgi')}
           >
             i
           </button>
@@ -648,7 +634,7 @@ MANDATORY INSTRUCTIONS:
           onClick={() => window.dispatchEvent(new CustomEvent('start-tour'))}
           className="flex items-center gap-2 px-4 py-2 bg-accent/10 hover:bg-accent hover:text-white text-accent rounded-full text-[11px] font-bold uppercase tracking-widest transition-all shadow-sm border border-accent/20"
         >
-          ✦ Kleon Playbook
+          {t('wizard.playbook_btn')}
         </button>
       </div>
 
@@ -656,12 +642,12 @@ MANDATORY INSTRUCTIONS:
         <div className="glass-card border border-accent/20 p-6 rounded-[24px] space-y-3 shadow-sm border-l-4 border-l-accent">
           <div className="flex items-center gap-2">
             <Wand2 size={16} className="text-accent" />
-            <span className="text-[10px] font-bold text-accent uppercase tracking-widest">{t('Örüntü (Pattern) Bulma')}</span>
+            <span className="text-[10px] font-bold text-accent uppercase tracking-widest">{t('wizard.pattern_finding')}</span>
           </div>
           <p className="text-xs text-text/70 leading-relaxed italic">
-            {t('Kleon der ki: "Bu içeriklere yukarıdan bak. Ortak nokta ne? Aynı dili mi kullanıyorlar, aynı hatayı mı çözüyorlar?"')}
+            {t('wizard.kleon_pattern_wizard')}
             <br /><br />
-            <strong>{t('Görev:')}</strong> {t('Bu rehberin ana fikrini, örüntüyü hissettirecek şekilde aşağıda güncelle.')}
+            <strong>{t('wizard.task_label')}</strong> {t('wizard.task_desc')}
           </p>
         </div>
       )}
@@ -672,25 +658,25 @@ MANDATORY INSTRUCTIONS:
         </div>
       )}
       <div className="space-y-2">
-        <label className="text-[10px] font-bold tracking-widest text-muted uppercase ml-1">{t('Bugünkü fikir veya gözlem')}</label>
+        <label className="text-[10px] font-bold tracking-widest text-muted uppercase ml-1">{t('wizard.idea_label')}</label>
         <textarea
           id="idea"
           value={formData.idea}
           onChange={e => set('idea', e.target.value)}
           className="w-full p-6 bg-surface border border-border rounded-[24px] focus:border-accent outline-none text-base min-h-[160px] transition-all scrollbar-hide"
-          placeholder={formData.tags ? `${formData.tags} üzerine çalışmaya devam et...` : t("Bugün aklıma şu geldi...")}
+          placeholder={formData.tags ? t('wizard.idea_placeholder_tag', { tag: formData.tags }) : t("wizard.idea_placeholder")}
         />
       </div>
       <div className="space-y-2">
         <div className="flex items-center justify-between ml-1">
-          <label className="text-[10px] font-bold tracking-widest text-muted uppercase">{t('Etiketler')}</label>
+          <label className="text-[10px] font-bold tracking-widest text-muted uppercase">{t('wizard.tags_label')}</label>
           <button
             onClick={handleSuggestTags}
             disabled={isTagsAiLoading || !formData.idea}
             className="text-[10px] font-bold text-accent uppercase flex items-center gap-1 hover:opacity-70 disabled:opacity-30 transition-all"
           >
             {isTagsAiLoading ? <Wand2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
-            AI Öner
+            {t('wizard.suggest_ai')}
           </button>
         </div>
         <input
@@ -703,36 +689,36 @@ MANDATORY INSTRUCTIONS:
         />
       </div>
       <button
-        onClick={() => { if (!formData.idea.trim()) return alert('Boş fikir kaydedilemez.'); nextStep(); }}
+        onClick={() => { if (!formData.idea.trim()) return alert(t('wizard.no_empty')); nextStep(); }}
         className="w-full bg-accent text-text py-4 rounded-full font-bold text-sm flex items-center justify-center gap-2 shadow-lg active:translate-y-1 transition-all"
       >
-        {t('Devam Et')} <ChevronRight size={18} />
+        {t('common.continue')} <ChevronRight size={18} />
       </button>
     </div>,
 
     // STEP 1: 24 Saat Testi
     <div key="s1" className="space-y-8 text-center py-10" id="step-24h">
       <h2 className="serif text-4xl italic text-text">
-        {t('24 Saat Testi')}
+        {t('wizard.test_24h_title')}
       </h2>
       <p className="text-lg text-muted serif italic max-w-sm mx-auto leading-relaxed">
-        {t('Bu fikri 24 saatten uzun süredir düşünüyor musun?')}
+        {t('wizard.test_24h_desc')}
       </p>
       <div className="flex flex-col gap-4 max-w-xs mx-auto pt-6">
-        <button onClick={nextStep} className="w-full bg-accent text-text py-4 rounded-full font-bold text-sm shadow-lg">{t('Evet, işleme al')}</button>
-        <button onClick={() => toCabinet('24 saat geçmedi — taslak saklandı.')} className="w-full bg-surface border border-border text-muted py-4 rounded-full text-sm font-semibold">{t('Hayır, müzeye kaldır')}</button>
+        <button onClick={nextStep} className="w-full bg-accent text-text py-4 rounded-full font-bold text-sm shadow-lg">{t('wizard.test_24h_yes')}</button>
+        <button onClick={() => toCabinet(t('wizard.draft_saved'))} className="w-full bg-surface border border-border text-muted py-4 rounded-full text-sm font-semibold">{t('wizard.test_24h_no')}</button>
       </div>
     </div>,
 
     // STEP 2: Döküman & Artıklar
     <div key="s2" className="space-y-6" id="wizard-media">
       <h2 className="serif text-4xl italic text-text">
-        {t('Döküman & Artıklar')}
+        {t('wizard.doc_title')}
       </h2>
       <div className="flex flex-wrap gap-3 py-2">
         <button onClick={() => mediaInputRef.current?.click()} className="flex flex-col items-center justify-center w-24 h-24 bg-surface border-2 border-dashed border-border rounded-[24px] hover:border-accent transition-all group">
           <ImageIcon size={24} className="text-muted group-hover:text-accent" />
-          <span className="text-[10px] font-bold mt-2 opacity-60">{t('GÖRSEL')}</span>
+          <span className="text-[10px] font-bold mt-2 opacity-60">{t('wizard.media_image')}</span>
           <input type="file" accept="image/*" ref={mediaInputRef} onChange={(e) => handleFileUpload(e, 'image')} className="hidden" />
         </button>
         <button onClick={() => {
@@ -740,14 +726,14 @@ MANDATORY INSTRUCTIONS:
           i.onchange = (e: any) => handleFileUpload(e, 'audio'); i.click();
         }} className="flex flex-col items-center justify-center w-24 h-24 bg-surface border-2 border-dashed border-border rounded-[24px] hover:border-accent transition-all group">
           <Mic size={24} className="text-muted group-hover:text-accent" />
-          <span className="text-[10px] font-bold mt-2 opacity-60">{t('SES')}</span>
+          <span className="text-[10px] font-bold mt-2 opacity-60">{t('wizard.media_audio')}</span>
         </button>
         <button onClick={() => {
           const name = prompt('Belge adı?');
           if (name) setFormData(prev => ({ ...prev, media: [...prev.media, { type: 'text', url: '', name }] }));
         }} className="flex flex-col items-center justify-center w-24 h-24 bg-surface border-2 border-dashed border-border rounded-[24px] hover:border-accent transition-all group">
           <Type size={24} className="text-muted group-hover:text-accent" />
-          <span className="text-[10px] font-bold mt-2 opacity-60">{t('YAZI')}</span>
+          <span className="text-[10px] font-bold mt-2 opacity-60">{t('wizard.media_text')}</span>
         </button>
       </div>
       <div className="flex flex-wrap gap-4">
@@ -759,9 +745,9 @@ MANDATORY INSTRUCTIONS:
               <div className="w-full h-full p-4 flex flex-col gap-2">
                 <div className="flex items-center gap-2 border-b border-border pb-2">
                   <Quote size={16} className="text-accent" />
-                  <input value={m.name} onChange={(e) => { const nm = [...formData.media]; nm[i].name = e.target.value; setFormData({ ...formData, media: nm }); }} className="text-[10px] font-extrabold uppercase bg-transparent outline-none w-full" placeholder={t("NOT ADI")} />
+                  <input value={m.name} onChange={(e) => { const nm = [...formData.media]; nm[i].name = e.target.value; setFormData({ ...formData, media: nm }); }} className="text-[10px] font-extrabold uppercase bg-transparent outline-none w-full" placeholder={t('wizard.note_name')} />
                 </div>
-                <textarea value={m.content} onChange={(e) => { const nm = [...formData.media]; nm[i].content = e.target.value; setFormData({ ...formData, media: nm }); }} className="text-[10px] h-full w-full bg-transparent resize-none outline-none serif italic leading-relaxed" placeholder={t("Notlarını buraya yaz...")} />
+                <textarea value={m.content} onChange={(e) => { const nm = [...formData.media]; nm[i].content = e.target.value; setFormData({ ...formData, media: nm }); }} className="text-[10px] h-full w-full bg-transparent resize-none outline-none serif italic leading-relaxed" placeholder={t('wizard.note_placeholder')} />
               </div>
             )}
             <button onClick={() => removeMedia(i)} className="absolute top-3 right-3 p-1.5 bg-danger text-white rounded-full opacity-0 md:group-hover:opacity-100 transition-opacity shadow-lg"><Trash2 size={12} /></button>
@@ -770,9 +756,9 @@ MANDATORY INSTRUCTIONS:
       </div>
       <div className="space-y-2 pt-4">
         <div className="flex items-center justify-between ml-1">
-          <label className="text-[10px] font-bold tracking-widest text-muted uppercase">{t('Ham malzeme')}</label>
+          <label className="text-[10px] font-bold tracking-widest text-muted uppercase">{t('wizard.raw_material_label')}</label>
           <button onClick={handleSummarizeDocs} disabled={isDocAiLoading || (!formData.doc && !formData.media.some(m => m.type === 'text'))} className="text-[10px] font-bold text-accent uppercase flex items-center gap-1 hover:opacity-70 disabled:opacity-30 transition-all border border-accent-soft rounded-full px-3 py-1">
-            {isDocAiLoading ? <Wand2 size={10} className="animate-spin" /> : <Sparkles size={10} />} Fikri Özetle
+            {isDocAiLoading ? <Wand2 size={10} className="animate-spin" /> : <Sparkles size={10} />} {t('wizard.summarize_ai')}
           </button>
         </div>
         <textarea 
@@ -780,32 +766,32 @@ MANDATORY INSTRUCTIONS:
           value={formData.doc} 
           onChange={e => set('doc', e.target.value)} 
           className="w-full p-4 bg-surface border border-border rounded-[24px] focus:border-accent outline-none text-sm min-h-[100px]" 
-          placeholder={t("Kod, not, karalama...")} 
+          placeholder={t("wizard.raw_material_ph")} 
         />
       </div>
       <div className="flex items-start gap-4 p-5 bg-bg border border-border rounded-[24px]">
         <input type="checkbox" id="amateur" checked={formData.isAmateur} onChange={e => set('isAmateur', e.target.checked)} className="mt-1" />
-        <label htmlFor="amateur" className="text-sm"><strong className="block">{t('Amatör Modu')}</strong><span className="text-muted text-xs">{t('Hata yapmaktan korkma. En ham halini paylaş.')}</span></label>
+        <label htmlFor="amateur" className="text-sm"><strong className="block">{t('wizard.amateur_mode_label')}</strong><span className="text-muted text-xs">{t('wizard.amateur_mode_desc')}</span></label>
       </div>
       <div className="grid grid-cols-2 gap-4 pt-2">
-        <button onClick={nextStep} className="bg-accent text-text py-4 rounded-full font-bold text-sm shadow-md">{t('Paylaşacağım →')}</button>
-        <button onClick={() => toCabinet('Taslak saklandı.')} className="bg-surface border border-border text-muted py-4 rounded-full text-sm font-semibold">{t('Müzeye al')}</button>
+        <button onClick={nextStep} className="bg-accent text-text py-4 rounded-full font-bold text-sm shadow-md">{t('wizard.share_btn')}</button>
+        <button onClick={() => toCabinet(t('wizard.draft_stored'))} className="bg-surface border border-border text-muted py-4 rounded-full text-sm font-semibold">{t('wizard.museum_btn')}</button>
       </div>
     </div>,
 
     // STEP 3: So What?
     <div key="s3" className="space-y-8" id="so-what-step">
       <h2 className="serif text-4xl italic text-text">
-        {t('So What? Testi')}
+        {t('wizard.so_what_title')}
       </h2>
       <div className="bg-danger-soft border-l-4 border-danger p-6 rounded-[24px] text-sm text-danger leading-relaxed italic">
-        <strong>{t('Sturgeon Yasası:')}</strong> {t('Her şeyin %90\'ı çöptür. Neyin iyi neyin kötü olduğunu hemen bilemeyebilirsin.')}
+        <strong>{t('wizard.sturgeon_law')}</strong> {t('wizard.sturgeon_desc')}
       </div>
       <div className="flex flex-col gap-4 pt-6">
-        <button onClick={nextStep} className="w-full bg-accent text-text py-4 rounded-full font-bold text-sm shadow-lg">{t('Bir kıvılcım — devam')}</button>
-        <button onClick={() => toCabinet('Emin değilsin — taslak saklandı.')} className="w-full bg-surface border border-border text-muted py-4 rounded-full text-sm font-semibold">{t('Emin değilim')}</button>
-        <button onClick={() => { if (confirm('Emin misin?')) { reset(); alert('Silindi.'); } }} className="w-full border border-danger/30 text-danger py-3 rounded-full text-sm font-semibold flex items-center justify-center gap-2 hover:bg-danger-soft transition-colors">
-          <Trash2 size={16} /> {t('Sadece gürültü — sil')}
+        <button onClick={nextStep} className="w-full bg-accent text-text py-4 rounded-full font-bold text-sm shadow-lg">{t('wizard.spark_continue')}</button>
+        <button onClick={() => toCabinet(t('wizard.draft_stored'))} className="w-full bg-surface border border-border text-muted py-4 rounded-full text-sm font-semibold">{t('wizard.not_sure_btn')}</button>
+        <button onClick={() => { if (confirm(t('wizard.delete_confirm'))) { reset(); alert(t('wizard.deleted_msg')); } }} className="w-full border border-danger/30 text-danger py-3 rounded-full text-sm font-semibold flex items-center justify-center gap-2 hover:bg-danger-soft transition-colors">
+          <Trash2 size={16} /> {t('wizard.noise_delete')}
         </button>
       </div>
     </div>,
@@ -1036,40 +1022,40 @@ MANDATORY INSTRUCTIONS:
       )}
 
       <button onClick={formData.rehberType ? publish : nextStep} className="w-full bg-accent text-text py-4 rounded-full font-bold text-sm shadow-xl">
-        {formData.rehberType ? "Hub'a Yayınla" : 'Devam →'}
+        {formData.rehberType ? t('wizard.publish_btn') : t('common.continue_arrow')}
       </button>
     </div>,
 
     // STEP 6: Son Kontroller & Vampir Testi
     <div key="s6" className="space-y-6" id="vampire-step">
       <div className="flex items-center justify-between">
-        <h2 className="serif text-4xl italic text-text">{t('Vampir Testi')}</h2>
+        <h2 className="serif text-4xl italic text-text">{t('wizard.vampire_test_title')}</h2>
         {isVampireAiLoading && <Wand2 size={24} className="animate-spin text-accent" />}
       </div>
       <div className="grid grid-cols-1 gap-4 pt-4">
         <div className="bg-accent-soft p-8 rounded-[32px] border border-accent/10 shadow-sm">
           {vampireQuote ? (
             <>
-              <div className="flex items-center gap-3 mb-3"><Sparkles size={18} className="text-accent" /><div className="text-[10px] font-bold text-accent uppercase tracking-widest">GÜVENİLİR BİLGİ — {vampireQuote.author}</div></div>
+              <div className="flex items-center gap-3 mb-3"><Sparkles size={18} className="text-accent" /><div className="text-[10px] font-bold text-accent uppercase tracking-widest">{t('wizard.gathering_data_auth')} — {vampireQuote.author}</div></div>
               <p className="text-sm italic serif text-text leading-relaxed">"{vampireQuote.quote}"</p>
             </>
-          ) : isVampireAiLoading ? <div className="h-24 animate-pulse bg-surface/50 rounded-lg" /> : <div className="text-muted text-xs italic">{t('Veri toplanıyor...')}</div>}
+          ) : isVampireAiLoading ? <div className="h-24 animate-pulse bg-surface/50 rounded-lg" /> : <div className="text-muted text-xs italic">{t('wizard.gathering_data')}</div>}
         </div>
         <div className="bg-danger-soft p-8 rounded-[32px] border border-danger/10 shadow-sm">
-          <div className="flex items-center gap-3 mb-3 text-danger"><Share2 size={18} /><div className="text-[10px] font-bold uppercase tracking-widest">{t('VAMPİR UYARISI')}</div></div>
+          <div className="flex items-center gap-3 mb-3 text-danger"><Share2 size={18} /><div className="text-[10px] font-bold uppercase tracking-widest">{t('wizard.vampire_warning')}</div></div>
           {vampireQuote ? (
             <ul className="text-sm italic serif text-text leading-relaxed list-disc list-inside">{vampireQuote.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul>
           ) : isVampireAiLoading ? <div className="h-24 animate-pulse bg-surface/50 rounded-lg" /> : (
-            <p className="text-sm italic serif text-text leading-relaxed">{t('Metriklerin kölesi olduklarında yaratıcılıkları öldü.')}</p>
+            <p className="text-sm italic serif text-text leading-relaxed">{t('wizard.metrical_prisoner')}</p>
           )}
         </div>
       </div>
       <div className="bg-surface border border-border text-text p-8 rounded-[32px] text-sm leading-relaxed mt-6 shadow-xl">
-        <strong>{t('Mükemmeliyetçilik Bir Hapishanedir:')}</strong> {t('Öleceksin. Bu yüzden bu kusurlu haliyle yayınla. Gerçek başarı sürekliliktedir.')}
+        <strong>{t('wizard.perfectionism_prison')}</strong> {t('wizard.perfectionism_prison_desc')}
       </div>
       <div id="wizard-actions">
         <button onClick={publish} className="w-full bg-accent text-text py-5 rounded-full font-bold text-lg shadow-2xl mt-6">
-          {t('Gözünü kapat ve yayınla')}
+          {t('wizard.close_eye_and_publish')}
         </button>
       </div>
     </div>,
@@ -1078,37 +1064,41 @@ MANDATORY INSTRUCTIONS:
     <div key="s7" className="space-y-12 py-10 text-center">
       <div className="space-y-2">
         <div className="inline-flex items-center justify-center w-20 h-20 bg-accent text-text rounded-full mb-4 shadow-xl"><CheckCircle2 size={32} /></div>
-        <h2 className="serif text-4xl italic text-text uppercase tracking-widest">{formData.rehberType ? 'STOK TAMAMLANDI' : 'BAŞARDIN ✓'}</h2>
+        <h2 className="serif text-4xl italic text-text uppercase tracking-widest">{formData.rehberType ? t('wizard.success_stock') : t('wizard.success_blended')}</h2>
       </div>
       {formData.rehberType ? (
         <div className="bg-surface border border-border text-text p-10 rounded-[48px] shadow-2xl space-y-6">
-          <h3 className="text-xl font-bold uppercase tracking-[0.2em]">{t('Kalıcı Bir Değer Yarattın')}</h3>
-          <p className="text-base italic leading-relaxed opacity-80 serif">{t('"Fikirlerinizi stoklayın. Onları biriktirin, düzenleyin ve başkalarına fayda sağlayacak bir bütüne dönüştürün."')}</p>
+          <h3 className="text-xl font-bold uppercase tracking-[0.2em]">{t('wizard.permanent_value')}</h3>
+          <p className="text-base italic leading-relaxed opacity-80 serif">{t('wizard.permanent_value_quote')}</p>
           <div className="pt-4 opacity-50 text-[10px] uppercase tracking-widest">{t('— Austin Kleon, Show Your Work')}</div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-accent/5 text-text p-8 rounded-[32px] text-xs leading-relaxed text-left border border-accent/20 shadow-2xl"><strong>{t('Bugün bir iz bıraktın.')}</strong> {t('Austin Kleon: "Başkalarının işlerini çalın, kendi stilinizi harmanlayın."')}</div>
-          <div className="bg-green-soft border border-green/20 p-8 rounded-[32px] text-xs text-green leading-relaxed text-left shadow-sm"><strong>{t('Sabbatical Başladı:')}</strong> {t('Cihazları kapat. Bir ağaca bak. Köpeğini gezdir.')}</div>
+          <div className="bg-accent/5 text-text p-8 rounded-[32px] text-xs leading-relaxed text-left border border-accent/20 shadow-2xl"><strong>{t('wizard.done_trace')}</strong> {t('wizard.done_trace_kleon')}</div>
+          <div className="bg-green-soft border border-green/20 p-8 rounded-[32px] text-xs text-green leading-relaxed text-left shadow-sm"><strong>{t('wizard.done_sabbatical_title')}</strong> {t('wizard.done_sabbatical_desc')}</div>
         </div>
       )}
       <div className="space-y-4 py-10">
         <div className="flex items-center justify-between">
-          <label className="text-[10px] font-bold tracking-widest text-muted uppercase block">{t('Hemingway Taktiği — yarın kaldığın yerden devam et:')}</label>
+          <label className="text-[10px] font-bold tracking-widest text-muted uppercase block">{t('wizard.hemingway_next_label')}</label>
           {isNextLineAiLoading && <Wand2 size={16} className="animate-spin text-accent" />}
         </div>
         <div className="relative" id="hemingway-step">
-          <textarea value={formData.nextLine} onChange={e => set('nextLine', e.target.value)} className="w-full p-8 bg-surface border border-border rounded-[32px] text-lg serif italic focus:border-accent outline-none shadow-md transition-all" placeholder={isNextLineAiLoading ? t('AI öneri hazırlıyor...') : t('Yarınki işime şuradan başlayacağım...')} />
+          <textarea value={formData.nextLine} onChange={e => set('nextLine', e.target.value)} className="w-full p-8 bg-surface border border-border rounded-[32px] text-lg serif italic focus:border-accent outline-none shadow-md transition-all" placeholder={isNextLineAiLoading ? t('wizard.hemingway_ai_suggesting') : t('wizard.hemingway_ph')} />
           <button onClick={handleGenerateNextLine} disabled={isNextLineAiLoading} className="absolute top-4 right-4 text-accent/40 hover:text-accent transition-colors"><Sparkles size={18} /></button>
         </div>
       </div>
       <button onClick={() => { saveHemingway(formData.nextLine); reset(); window.dispatchEvent(new CustomEvent('exit-wizard')); }} className="w-full bg-accent text-text py-5 rounded-full font-bold text-xl shadow-2xl">
-        {t('Kaydet & Sabbatical\'a çık')}
+        {t('wizard.save_sabbatical_btn')}
       </button>
     </div>
   ];
 
-  const labels = ['Fikir', '24h', 'Döküm', 'S.W?', 'Form', 'Önizleme', 'Kontrol', 'Son'];
+  const labels = [
+    t('wizard.step_title_0'), t('wizard.step_title_1'), t('wizard.step_title_2'), 
+    t('wizard.step_title_3'), t('wizard.step_title_4'), t('wizard.step_title_5'), 
+    t('wizard.step_title_6'), t('wizard.step_title_7')
+  ];
 
   return (
     <div className="space-y-8 md:space-y-12 pb-32 max-w-lg mx-auto">
@@ -1135,12 +1125,12 @@ MANDATORY INSTRUCTIONS:
 
       {step > 0 && step < 7 && (
         <button onClick={prevStep} className="flex items-center gap-2 text-[10px] font-bold text-muted hover:text-accent uppercase tracking-[0.2em] transition-colors ml-2">
-          <ChevronRight size={14} className="rotate-180" /> {t('Geri Dön')}
+          <ChevronRight size={14} className="rotate-180" /> {t('common.back')}
         </button>
       )}
 
       <div className="fixed bottom-24 right-4 md:hidden">
-        <button onClick={() => confirm('Sıfırlamak istiyor musun?') && reset()} className="w-10 h-10 bg-surface/80 backdrop-blur-md border border-border rounded-full flex items-center justify-center shadow-lg text-muted hover:text-danger transition-colors">
+        <button onClick={() => confirm(t('wizard.reset_confirm')) && reset()} className="w-10 h-10 bg-surface/80 backdrop-blur-md border border-border rounded-full flex items-center justify-center shadow-lg text-muted hover:text-danger transition-colors">
           <Trash2 size={16} />
         </button>
       </div>
@@ -1148,15 +1138,15 @@ MANDATORY INSTRUCTIONS:
       <InfoModal
         isOpen={isInfoModalOpen}
         onClose={() => setIsInfoModalOpen(false)}
-        title={t('Fikir Defteri')}
+        title={t('wizard.info_title')}
         content={
           <div className="space-y-4">
             <div className="border-l-4 border-accent pl-3 py-1">
-              <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">Yaratıcı Hırsızlık</h4>
-              <p className="text-sm italic">"İyi bir sanatçı kopyalamaz, çalar." — Austin Kleon</p>
+              <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">{t('wizard.info_stolen')}</h4>
+              <p className="text-sm italic">{t('wizard.info_stolen_quote')}</p>
             </div>
-            <p className="text-sm">Burası senin fikirlerinin tohumlandığı yer. Aklına gelen her şeyi not al, etiketle ve sakla.</p>
-            <p className="text-sm">Fikirlerini daha sonra <strong>Merak Kabinesi</strong>'nde harmanlayabilir, buradaki <strong>Kleon Playbook</strong> ile yaratıcılığını artıracak taktikler öğrenebilirsin.</p>
+            <p className="text-sm">{t('wizard.info_desc1')}</p>
+            <p className="text-sm">{t('wizard.info_desc2')}</p>
           </div>
         }
       />

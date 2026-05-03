@@ -54,7 +54,7 @@ export function InfoModal({ isOpen, onClose, title, content }: InfoModalProps) {
                 onClick={onClose}
                 className="w-full bg-text text-bg py-3 rounded-full font-bold uppercase tracking-widest text-[10px] hover:scale-[0.98] transition-all shadow-lg"
               >
-                {t('Anladım, Teşekkürler')}
+                {t('common.understood')}
               </button>
             </div>
           </motion.div>

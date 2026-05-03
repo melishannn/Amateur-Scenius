@@ -80,7 +80,7 @@ export default function Navigation({ activeTab, setActiveTab, user, login, logou
           <button 
             onClick={onToggleSidebar}
             className="p-2 text-muted hover:text-text hover:bg-surface rounded-xl transition-colors shrink-0"
-            title="Menüyü Kapat"
+            title={t('navigation.close_menu')}
           >
             <PanelLeftClose size={20} />
           </button>

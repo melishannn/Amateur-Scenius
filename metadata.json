@@ -1,6 +1,6 @@
 {
   "name": "Amateur Scenius",
-  "description": "Yazarlar ve meraklılar için fikirleri olgunlaştıran, amatör ruhu koruyan bir içerik üretim karargahı.",
+  "description": "A content creation headquarters for writers and enthusiasts that matures ideas while preserving the amateur spirit.",
   "requestFramePermissions": [
     "microphone"
   ],

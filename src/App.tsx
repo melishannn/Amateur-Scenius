@@ -46,7 +46,7 @@ export default function App() {
       import('firebase/auth').then(({ onAuthStateChanged }) => {
         onAuthStateChanged(auth, async (userRecord) => {
           if (userRecord) {
-            setUser({ name: userRecord.displayName || 'Kullanıcı', email: userRecord.email || '', uid: userRecord.uid });
+            setUser({ name: userRecord.displayName || t('app.default_user'), email: userRecord.email || '', uid: userRecord.uid });
             const { loadStateFromFirebase } = await import('./firebaseSync');
             const data = await loadStateFromFirebase(userRecord.uid);
             if (data) {
@@ -330,7 +330,7 @@ export default function App() {
         <button
           onClick={() => setIsSidebarOpen(true)}
           className="hidden md:flex fixed top-8 left-8 z-40 p-3 bg-surface border border-border/50 shadow-lg rounded-2xl text-text hover:text-accent hover:border-accent hover:shadow-[0_0_20px_rgba(124,92,255,0.2)] transition-all"
-          title="Menüyü Aç"
+          title={t('navigation.open_menu')}
         >
           <Menu size={20} />
         </button>

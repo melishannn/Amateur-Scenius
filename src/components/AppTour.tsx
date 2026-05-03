@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronRight, ChevronLeft } from 'lucide-react';
 
+import { useLanguage } from '../contexts/LanguageContext';
+
 interface TourStep {
   target: string;
   title: string;
@@ -28,54 +30,56 @@ interface AppTourProps {
 }
 
 // ─── TUR ADIMLARI ────────────────────────────────────────────────────────────
-const buildSteps = (): TourStep[] => [
+const buildSteps = (t: (key: string) => string): TourStep[] => [
   {
     target: '#idea',
-    title: '1. Giriş: Fikir Defteri',
+    title: t('tour.step1.title'),
     tab: 'flow',
     wizardStep: 0,
     waitMs: 300,
     content: (
       <div className="space-y-4">
         <div className="border-l-4 border-accent pl-3 py-1">
-          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">Felsefe</h4>
-          <p className="text-sm italic">"Austin Kleon der ki: Deha olmanıza gerek yok. Yaratıcılık, kendinizi bir 'scenius' içinde konumlandırmaktır."</p>
+          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">{t('tour.step1.phil')}</h4>
+          <p className="text-sm italic">{t('tour.step1.quote')}</p>
         </div>
-        <p className="text-sm">Buraya en küçük gözlemini bile yaz. Amatörler, kaybedecek bir şeyi olmadığı için denemekten çekinmezler.</p>
+        <p className="text-sm">{t('tour.step1.desc')}</p>
       </div>
     ),
     placement: 'right',
   },
   {
     target: '#tag-input',
-    title: '2. Etiketler: Gruplandır',
+    title: t('tour.step2.title'),
     tab: 'flow',
     wizardStep: 0,
     content: (
       <div className="space-y-4">
-        <p className="text-sm">Aynı etiketteki fikirler zamanla birikerek bir <strong>Stok (Stock)</strong> oluşturur. Austin Kleon'un tavsiyesi: Ortak noktaları bul ve onları birleştir.</p>
-        <p className="text-[10px] font-bold text-accent uppercase tracking-widest">Devam Et butonuna basarak ilerleyebilirsin.</p>
+        <p className="text-sm">
+          <span dangerouslySetInnerHTML={{ __html: t('tour.step2.desc') }} />
+        </p>
+        <p className="text-[10px] font-bold text-accent uppercase tracking-widest">{t('tour.step2.hint')}</p>
       </div>
     ),
     placement: 'right',
   },
   {
     target: '#step-24h',
-    title: '3. 24 Saat Testi',
+    title: t('tour.step3.title'),
     tab: 'flow',
     wizardStep: 1,
     waitMs: 500,
     content: (
       <div className="space-y-4">
         <div className="border-l-4 border-accent pl-3 py-1">
-          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">Austin Kleon</h4>
-          <p className="text-sm italic">"Her şeyi anında paylaşmak insan spam'ine yol açabilir."</p>
+          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">{t('tour.step3.phil')}</h4>
+          <p className="text-sm italic">{t('tour.step3.quote')}</p>
         </div>
-        <p className="text-sm">Fikri 24 saat beklet. Hâlâ heyecan veriyorsa işleme al, yoksa <strong>Müzeye Kaldır</strong>.</p>
+        <p className="text-sm"><span dangerouslySetInnerHTML={{ __html: t('tour.step3.desc') }} /></p>
         <div className="bg-accent/10 rounded-xl p-3 space-y-2">
-          <p className="text-[10px] font-bold text-accent uppercase tracking-widest">İki yol var:</p>
-          <p className="text-xs">✅ <strong>Evet, işleme al</strong> → Döküman adımına geçer</p>
-          <p className="text-xs">🏛️ <strong>Müzeye Kaldır</strong> → Taslak saklanır, tur biter</p>
+          <p className="text-[10px] font-bold text-accent uppercase tracking-widest">{t('tour.step3.ways')}</p>
+          <p className="text-xs"><span dangerouslySetInnerHTML={{ __html: t('tour.step3.way1') }} /></p>
+          <p className="text-xs"><span dangerouslySetInnerHTML={{ __html: t('tour.step3.way2') }} /></p>
         </div>
       </div>
     ),
@@ -83,21 +87,21 @@ const buildSteps = (): TourStep[] => [
   },
   {
     target: '#wizard-media',
-    title: '4. Döküman & Artıklar',
+    title: t('tour.step4.title'),
     tab: 'flow',
     wizardStep: 2,
     waitMs: 500,
     content: (
       <div className="space-y-4">
         <div className="border-l-4 border-accent pl-3 py-1">
-          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">Süreci Paylaş</h4>
-          <p className="text-sm italic">"Sucuğun nasıl yapıldığını göster. Artıklar (residue), ürünün kendisi kadar değerlidir."</p>
+          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">{t('tour.step4.phil')}</h4>
+          <p className="text-sm italic">{t('tour.step4.quote')}</p>
         </div>
-        <p className="text-sm">Görsel ekle, ses kaydı al veya yazı notları tut.</p>
+        <p className="text-sm">{t('tour.step4.desc')}</p>
         <div className="bg-accent/10 rounded-xl p-3 space-y-2">
-          <p className="text-[10px] font-bold text-accent uppercase tracking-widest">İki yol var:</p>
-          <p className="text-xs">📤 <strong>Paylaşacağım →</strong> So What? testine geçer</p>
-          <p className="text-xs">🏛️ <strong>Müzeye Al</strong> → Taslak saklanır, tur biter</p>
+          <p className="text-[10px] font-bold text-accent uppercase tracking-widest">{t('tour.step3.ways')}</p>
+          <p className="text-xs"><span dangerouslySetInnerHTML={{ __html: t('tour.step4.way1') }} /></p>
+          <p className="text-xs"><span dangerouslySetInnerHTML={{ __html: t('tour.step4.way2') }} /></p>
         </div>
       </div>
     ),
@@ -105,34 +109,34 @@ const buildSteps = (): TourStep[] => [
   },
   {
     target: '#raw-material',
-    title: '5. Ham Madde',
+    title: t('tour.step5.title'),
     tab: 'flow',
     wizardStep: 2,
     content: (
       <div className="space-y-4">
-        <p className="text-sm">Kod parçaları, karalamalar veya ham notlarını buraya dök. Austin Kleon'a göre <em>"Ham halini paylaşmak dürüstlüktür."</em></p>
+        <p className="text-sm"><span dangerouslySetInnerHTML={{ __html: t('tour.step5.desc') }} /></p>
       </div>
     ),
     placement: 'right',
   },
   {
     target: '#so-what-step',
-    title: '6. So What? Testi',
+    title: t('tour.step6.title'),
     tab: 'flow',
     wizardStep: 3,
     waitMs: 500,
     content: (
       <div className="space-y-4">
         <div className="border-l-4 border-accent pl-3 py-1">
-          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">Cömertlik</h4>
-          <p className="text-sm italic">"Paylaşım bir cömertlik eylemidir, ego tatmini değil."</p>
+          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">{t('tour.step6.phil')}</h4>
+          <p className="text-sm italic">{t('tour.step6.quote')}</p>
         </div>
-        <p className="text-sm">Kendine sor: Bu başkası için yararlı mı?</p>
+        <p className="text-sm">{t('tour.step6.desc')}</p>
         <div className="bg-accent/10 rounded-xl p-3 space-y-2">
-          <p className="text-[10px] font-bold text-accent uppercase tracking-widest">Üç yol var:</p>
-          <p className="text-xs">✨ <strong>Bir kıvılcım — devam</strong> → Hikaye adımına geçer</p>
-          <p className="text-xs">🏛️ <strong>Emin değilim</strong> → Taslak saklanır</p>
-          <p className="text-xs">🗑️ <strong>Sadece gürültü — sil</strong> → Fikir silinir</p>
+          <p className="text-[10px] font-bold text-accent uppercase tracking-widest">{t('tour.step6.ways')}</p>
+          <p className="text-xs"><span dangerouslySetInnerHTML={{ __html: t('tour.step6.way1') }} /></p>
+          <p className="text-xs"><span dangerouslySetInnerHTML={{ __html: t('tour.step6.way2') }} /></p>
+          <p className="text-xs"><span dangerouslySetInnerHTML={{ __html: t('tour.step6.way3') }} /></p>
         </div>
       </div>
     ),
@@ -140,250 +144,260 @@ const buildSteps = (): TourStep[] => [
   },
   {
     target: '#narrative-step',
-    title: '7. Hikaye & Bağlam',
+    title: t('tour.step7.title'),
     tab: 'flow',
     wizardStep: 4,
     waitMs: 600,
     content: (
       <div className="space-y-4">
         <div className="border-l-4 border-accent pl-3 py-1">
-          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">Austin Kleon</h4>
-          <p className="text-sm italic">"İş kendi başına konuşmaz. İnsanlar hikayeyi bilmek isterler."</p>
+          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">{t('tour.step7.phil')}</h4>
+          <p className="text-sm italic">{t('tour.step7.quote')}</p>
         </div>
-        <p className="text-sm">Geçmişte ne hedefledin, şimdi neredesin? İki cümle yeter — hikayeni buraya yaz.</p>
+        <p className="text-sm">{t('tour.step7.desc')}</p>
       </div>
     ),
     placement: 'right',
   },
   {
     target: '#attribution-step',
-    title: '8. Atıf Adabı',
+    title: t('tour.step8.title'),
     tab: 'flow',
     wizardStep: 4,
     waitMs: 300,
     content: (
       <div className="space-y-4">
         <div className="border-l-4 border-accent pl-3 py-1">
-          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">Dürüstlük</h4>
-          <p className="text-sm italic">"Atıf İnternet'in ana para birimidir. Linksiz atıf neredeyse görünmezdir."</p>
+          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">{t('tour.step8.phil')}</h4>
+          <p className="text-sm italic">{t('tour.step8.quote')}</p>
         </div>
-        <p className="text-sm">İlham aldığın kişiyi ve kaynağı belirt. Sonra <strong>Harmanla →</strong> butonuna bas.</p>
+        <p className="text-sm">
+          <span dangerouslySetInnerHTML={{ __html: t('tour.step8.desc') }} />
+        </p>
       </div>
     ),
     placement: 'right',
   },
   {
     target: '#story-preview-header',
-    title: '9. Harmanlanan Hikaye',
+    title: t('tour.step9.title'),
     tab: 'flow',
     wizardStep: 5,
     waitMs: 300,
     content: (
       <div className="space-y-4">
         <div className="border-l-4 border-accent pl-3 py-1">
-          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">Son Rötuş</h4>
-          <p className="text-sm italic">"İyi bir fikir asla tam bitmez, sadece yayınlanır." — Kleon</p>
+          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">{t('tour.step9.phil')}</h4>
+          <p className="text-sm italic">{t('tour.step9.quote')}</p>
         </div>
-        <p className="text-sm">Aşağıdaki alandan metni düzenleyebilir veya ✨ <strong>AI Süsle</strong> butonuyla zenginleştirebilirsin. Sonra <strong>Devam →</strong> butonuna bas.</p>
+        <p className="text-sm">
+          <span dangerouslySetInnerHTML={{ __html: t('tour.step9.desc') }} />
+        </p>
       </div>
     ),
     placement: 'bottom',
   },
   {
     target: '#vampire-step',
-    title: '10. Vampir Testi',
+    title: t('tour.step10.title'),
     tab: 'flow',
     wizardStep: 6,
     waitMs: 600,
     content: (
       <div className="space-y-4">
         <div className="border-l-4 border-accent pl-3 py-1">
-          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">Enerji Kontrolü — Austin Kleon</h4>
-          <p className="text-sm italic">"Vampir testi basittir: Bir şey seni enerjik hissettiriyorsa, devam et. Seni tüketiyorsa, bırak."</p>
+          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">{t('tour.step10.phil')}</h4>
+          <p className="text-sm italic">{t('tour.step10.quote')}</p>
         </div>
-        <p className="text-sm">Kleon'a göre mükemmeliyetçilik en büyük vampirdir. Beğeni sayısı, retweet beklentisi — bunlar yaratıcılığını öldürür.</p>
-        <p className="text-sm">Fikrinin seni besleyip beslemediğini kontrol et. Hazırsan <strong>"Gözünü kapat ve yayınla"</strong> butonuna bas!</p>
+        <p className="text-sm">{t('tour.step10.desc1')}</p>
+        <p className="text-sm">
+          <span dangerouslySetInnerHTML={{ __html: t('tour.step10.desc2') }} />
+        </p>
       </div>
     ),
     placement: 'top',
   },
   {
     target: '#wizard-actions',
-    title: '11. Yayınla',
+    title: t('tour.step11.title'),
     tab: 'flow',
     wizardStep: 6,
     content: (
       <div className="space-y-4">
-        <p className="text-sm">Gözünü kapat ve yayınla. Gerçek başarı süreklilikte ve ham haliyle paylaşabilme cesaretindedir.</p>
-        <p className="text-[10px] font-bold uppercase text-accent">Butona tıkla ve yayınla!</p>
+        <p className="text-sm">{t('tour.step11.desc')}</p>
+        <p className="text-[10px] font-bold uppercase text-accent">{t('tour.step11.hint')}</p>
       </div>
     ),
     placement: 'top',
   },
   {
     target: '#hemingway-step',
-    title: '12. Hemingway Tekniği',
+    title: t('tour.step12.title'),
     tab: 'flow',
     wizardStep: 7,
     waitMs: 600,
     content: (
       <div className="space-y-4">
         <div className="border-l-4 border-accent pl-3 py-1">
-          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">Süreklilik</h4>
-          <p className="text-sm italic">"Hemingway, ertesi gün nereye gideceğini bildiğinde yazmayı bırakırdı."</p>
+          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">{t('tour.step12.phil')}</h4>
+          <p className="text-sm italic">{t('tour.step12.quote')}</p>
         </div>
-        <p className="text-sm">Yarın nereden başlayacağını yaz. Bu metot, <em>writer's block</em>'u ortadan kaldırır.</p>
+        <p className="text-sm">
+          <span dangerouslySetInnerHTML={{ __html: t('tour.step12.desc') }} />
+        </p>
       </div>
     ),
     placement: 'top',
   },
   {
     target: '#nav-cabinet',
-    title: '13. Merak Kabinesi',
+    title: t('tour.step13.title'),
     tab: 'cabinet',
     waitMs: 500,
     content: (
       <div className="space-y-4">
         <div className="border-l-4 border-accent pl-3 py-1">
-          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">Wunderkammern</h4>
-          <p className="text-sm italic">"Zevklerin seni sen yapan şeydir. Toplamak yaratmayı besler."</p>
+          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">{t('tour.step13.phil')}</h4>
+          <p className="text-sm italic">{t('tour.step13.quote')}</p>
         </div>
-        <p className="text-sm">Burası senin müzen. Tüm fikirlerin burada gruplanmış halde durur.</p>
+        <p className="text-sm">{t('tour.step13.desc')}</p>
       </div>
     ),
     placement: 'right',
   },
   {
     target: '#cabinet-tags',
-    title: '14. Etiket Filtreleri',
+    title: t('tour.step14.title'),
     tab: 'cabinet',
     waitMs: 300,
     content: (
       <div className="space-y-4">
-        <p className="text-sm">Fikirlerini etiketlerine göre filtreleyebilir, belli bir kavrama yönelik yazdığın tüm notları tek seferde görebilirsin.</p>
+        <p className="text-sm">{t('tour.step14.desc')}</p>
       </div>
     ),
     placement: 'bottom',
   },
   {
     target: '#stock-wizard-target',
-    title: '15. Stok Birikti Uyarıları',
+    title: t('tour.step15.title'),
     tab: 'cabinet',
     waitMs: 300,
     content: (
       <div className="space-y-4">
-        <p className="text-sm">Eğer bir etikette 3 veya 10 nota ulaşırsan, etiketin üzerinde bir ünlem belirir. Austin Kleon'un dediği gibi: "Fikirlerini biriktir." Biriken notları tek tıklamayla harmanlayıp rehberlere (taslaklara) dönüştürebilirsin!</p>
+        <p className="text-sm">{t('tour.step15.desc')}</p>
       </div>
     ),
     placement: 'bottom',
   },
   {
     target: '#stock-step-0',
-    title: '16. Seçim',
+    title: t('tour.step16.title'),
     tab: 'cabinet',
     stockWizardStep: 0,
     waitMs: 500,
     content: (
       <div className="space-y-4">
-        <p className="text-sm">Birleştirmek istediğin fikirleri seç. Noktaları birleştirip bütünü görmek ilk adımdır.</p>
+        <p className="text-sm">{t('tour.step16.desc')}</p>
       </div>
     ),
     placement: 'right',
   },
   {
     target: '#stock-step-1',
-    title: '17. Örüntü',
+    title: t('tour.step17.title'),
     tab: 'cabinet',
     stockWizardStep: 1,
     waitMs: 500,
     content: (
       <div className="space-y-4">
-        <p className="text-sm">Seçtiğin fikirlerdeki en yaygın kelimeleri incelersin. Rehberinde vurgulamak istediklerini onayla.</p>
+        <p className="text-sm">{t('tour.step17.desc')}</p>
       </div>
     ),
     placement: 'right',
   },
   {
     target: '#stock-step-2',
-    title: '18. Şablon Kesinleştirme',
+    title: t('tour.step18.title'),
     tab: 'cabinet',
     stockWizardStep: 2,
     waitMs: 500,
     content: (
       <div className="space-y-4">
-        <p className="text-sm">Bulunan örüntüye en uygun şablonu (Teknik Rehber, Belgesel vs.) sistem otomatik önerir. İstersen değiştirebilirsin.</p>
+        <p className="text-sm">{t('tour.step18.desc')}</p>
       </div>
     ),
     placement: 'right',
   },
   {
     target: '#template-technical',
-    title: '19. Şablon: Adım Adım Rehber',
+    title: t('tour.step19.title'),
     tab: 'cabinet',
     stockWizardStep: 2,
     waitMs: 500,
     content: (
       <div className="space-y-4">
-        <p className="text-sm">Austin Kleon der ki: "Öğrendiğinde başkalarına da öğret." Bir konuyu nasıl anladığını basit adımlarla kimseye tepeden bakmadan anlatmak için bu kalıbı seç.</p>
+        <p className="text-sm">{t('tour.step19.desc')}</p>
       </div>
     ),
     placement: 'bottom',
   },
   {
     target: '#template-documentary',
-    title: '20. Şablon: Belgesel',
+    title: t('tour.step20.title'),
     tab: 'cabinet',
     stockWizardStep: 2,
     waitMs: 500,
     content: (
       <div className="space-y-4">
-        <p className="text-sm">"Nihai ürünü değil, süreci paylaş." Karşılaştığın zorlukları, kırılma anlarını ve ulaştığın sonuçları hikaye formatında aktarmak için bu şablonu kullan.</p>
+        <p className="text-sm">{t('tour.step20.desc')}</p>
       </div>
     ),
     placement: 'bottom',
   },
   {
     target: '#template-readingList',
-    title: '21. Şablon: Atıf Kitapçığı',
+    title: t('tour.step21.title'),
     tab: 'cabinet',
     stockWizardStep: 2,
     waitMs: 500,
     content: (
       <div className="space-y-4">
-        <p className="text-sm">"Sen, okuduklarının bir karışımısın." Etkilendiğin kaynakları, kimlerden hangi fikirleri çaldığını (alıntıladığını) saygıyla derleyip sunmak içindir.</p>
+        <p className="text-sm">{t('tour.step21.desc')}</p>
       </div>
     ),
     placement: 'bottom',
   },
   {
     target: '#template-oldVsNew',
-    title: '22. Şablon: Eski vs. Yeni',
+    title: t('tour.step22.title'),
     tab: 'cabinet',
     stockWizardStep: 2,
     waitMs: 500,
     content: (
       <div className="space-y-4">
-        <p className="text-sm">Eski inançlarının nasıl yıkıldığını ve yeni öğrendiklerinle (zıtlıklarla) nasıl yer değiştirdiğini sert geçişlerle göstermek içindir.</p>
+        <p className="text-sm">{t('tour.step22.desc')}</p>
       </div>
     ),
     placement: 'bottom',
   },
   {
     target: '#stock-step-3',
-    title: '23. Rehberi Oluştur',
+    title: t('tour.step23.title'),
     tab: 'cabinet',
     stockWizardStep: 3,
     waitMs: 500,
     content: (
       <div className="space-y-4">
         <div className="border-l-4 border-accent pl-3 py-1">
-          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">Düşünceleri Harmanla</h4>
-          <p className="text-sm italic">"Noktaları birleştir, bütünü gör." — Austin Kleon</p>
+          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">{t('tour.step23.phil')}</h4>
+          <p className="text-sm italic">{t('tour.step23.quote')}</p>
         </div>
-        <p className="text-sm">Eski fikirlerini referans alarak yeni ve büyük bir rehber yaz. Aşağıdaki kutularda listelenen ilgili soruları kendi kelimelerinle cevapla.</p>
+        <p className="text-sm">{t('tour.step23.desc')}</p>
         <div className="bg-accent/10 rounded-xl p-3 space-y-2">
-          <p className="text-[10px] font-bold text-accent uppercase tracking-widest">İpucu:</p>
-          <p className="text-xs">Alt kısımda yer alan <strong>"Seçtiğin fikirlerden"</strong> butonlarına tıklayarak notlarını anında kutuya ekleyebilir, sonra onları kendi cümlelerinle birleştirebilirsin.</p>
+          <p className="text-[10px] font-bold text-accent uppercase tracking-widest">{t('tour.step3.ways')}</p>
+          <p className="text-xs">
+            <span dangerouslySetInnerHTML={{ __html: t('tour.step23.hint') }} />
+          </p>
         </div>
       </div>
     ),
@@ -391,29 +405,29 @@ const buildSteps = (): TourStep[] => [
   },
   {
     target: '#stock-step-4',
-    title: '24. Son Rötuş ve Yayın',
+    title: t('tour.step24.title'),
     tab: 'cabinet',
     stockWizardStep: 4,
     waitMs: 500,
     content: (
       <div className="space-y-4">
-        <p className="text-sm">Eserini gözden geçir ve istersen Hub'da yayınla. Austin Kleon'un tavsiye ettiği gibi stoklarını erittin!</p>
+        <p className="text-sm">{t('tour.step24.desc')}</p>
       </div>
     ),
     placement: 'right',
   },
   {
     target: '#nav-hub',
-    title: '25. Dünya Karargahı',
+    title: t('tour.step25.title'),
     tab: 'hub',
     waitMs: 500,
     content: (
       <div className="space-y-4">
         <div className="border-l-4 border-accent pl-3 py-1">
-          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">Domain Sahibi Ol</h4>
-          <p className="text-sm italic">"Sosyal ağlar birer uydudur. Karargahın ise senin kontrolünde olmalıdır."</p>
+          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">{t('tour.step25.phil')}</h4>
+          <p className="text-sm italic">{t('tour.step25.quote')}</p>
         </div>
-        <p className="text-sm">Burası senin klanını topladığın yer. Tüm yayınlarını buradan yönet.</p>
+        <p className="text-sm">{t('tour.step25.desc')}</p>
       </div>
     ),
     placement: 'right',
@@ -539,7 +553,8 @@ export function AppTour({
   isSidebarOpen,
   setIsSidebarOpen,
 }: AppTourProps) {
-  const steps = useMemo(() => buildSteps(), []);
+  const { t } = useLanguage();
+  const steps = useMemo(() => buildSteps(t), [t]);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 });
@@ -749,7 +764,7 @@ export function AppTour({
                 textTransform: 'uppercase', color: '#ef8282', padding: '4px 0'
               }}
             >
-              Geç
+              {t('tour.skip')}
             </button>
 
             <div style={{ display: 'flex', gap: 8 }}>
@@ -766,7 +781,7 @@ export function AppTour({
                     opacity: isTransitioning ? 0.4 : 1,
                   }}
                 >
-                  <ChevronLeft size={14} /> Geri
+                  <ChevronLeft size={14} /> {t('tour.prev')}
                 </button>
               )}
               <button
@@ -783,7 +798,7 @@ export function AppTour({
                   transition: 'opacity 0.2s',
                 }}
               >
-                {isTransitioning ? '...' : isLast ? 'Başla ✦' : 'Devam Et'}
+                {isTransitioning ? '...' : isLast ? t('tour.finish') : t('tour.next')}
                 {!isTransitioning && !isLast && <ChevronRight size={14} />}
               </button>
             </div>

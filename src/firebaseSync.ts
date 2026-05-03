@@ -1,9 +1,10 @@
 import { doc, getDoc, setDoc, query, collection, getDocs, writeBatch } from 'firebase/firestore';
-import { db } from './firebase';
+import { db, handleFirestoreError, OperationType } from './firebase';
 import { AppState, Post } from './types';
 
 // Fetch the state from Firestore
 export const loadStateFromFirebase = async (uid: string): Promise<AppState | null> => {
+  const userPath = `users/${uid}`;
   try {
     const docRef = doc(db, 'users', uid);
     const docSnap = await getDoc(docRef);
@@ -12,6 +13,7 @@ export const loadStateFromFirebase = async (uid: string): Promise<AppState | nul
       appState = docSnap.data();
     }
 
+    const postsPath = `users/${uid}/posts`;
     const postsQuery = query(collection(db, 'users', uid, 'posts'));
     const postsSnap = await getDocs(postsQuery);
     const posts: Post[] = [];
@@ -28,13 +30,14 @@ export const loadStateFromFirebase = async (uid: string): Promise<AppState | nul
       };
     }
   } catch (error) {
-    console.error('Error loading state from Firebase:', error);
+    handleFirestoreError(error, OperationType.GET, userPath);
   }
   return null;
 };
 
 // Save the entire state to Firestore
 export const saveStateToFirebase = async (uid: string, appState: AppState): Promise<void> => {
+  const userPath = `users/${uid}`;
   try {
     const { posts, ...restState } = appState;
     const docRef = doc(db, 'users', uid);
@@ -44,6 +47,7 @@ export const saveStateToFirebase = async (uid: string, appState: AppState): Prom
     let operationCount = 0;
 
     // Determine which posts to delete
+    const postsPath = `users/${uid}/posts`;
     const postsQuery = query(collection(db, 'users', uid, 'posts'));
     const postsSnap = await getDocs(postsQuery);
     const existingIds = postsSnap.docs.map(d => parseInt(d.id));
@@ -76,6 +80,6 @@ export const saveStateToFirebase = async (uid: string, appState: AppState): Prom
       await batch.commit();
     }
   } catch (error) {
-    console.error('Error saving state to Firebase:', error);
+    handleFirestoreError(error, OperationType.WRITE, userPath);
   }
 };
