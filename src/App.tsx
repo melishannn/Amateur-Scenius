@@ -66,11 +66,15 @@ export default function App() {
     localStorage.setItem('scenius_stars', JSON.stringify(appState.stars));
     localStorage.setItem('scenius_revisits', JSON.stringify(appState.revisits));
     
-    if (user?.uid) {
-      import('./firebaseSync').then(({ saveStateToFirebase }) => {
-        saveStateToFirebase(user.uid, appState);
-      }).catch(console.error);
-    }
+    const timer = setTimeout(() => {
+      if (user?.uid) {
+        import('./firebaseSync').then(({ saveStateToFirebase }) => {
+          saveStateToFirebase(user.uid, appState);
+        }).catch(console.error);
+      }
+    }, 3000); // Debounce for 3 seconds
+
+    return () => clearTimeout(timer);
   }, [appState, user?.uid]);
 
   useEffect(() => {
@@ -170,6 +174,17 @@ export default function App() {
       window.removeEventListener('start-tour', handleStartTour);
     };
   }, [activeTab]);
+
+  useEffect(() => {
+    if (user || skippedAuth) {
+      const hasSeenTour = localStorage.getItem('scenius_tour_completed');
+      if (!hasSeenTour) {
+        setTourStepIndex(0);
+        setIsTourRunning(true);
+        localStorage.setItem('scenius_tour_completed', 'true');
+      }
+    }
+  }, [user, skippedAuth]);
 
   useEffect(() => {
     const handleNextTourStep = () => {

@@ -1,19 +1,14 @@
 import { Post } from '../types';
 import { Music, Type } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useState } from 'react';
+import { InfoModal } from './ui/InfoModal';
 
-const HelpTrigger = ({ onClick }: { onClick: () => void }) => (
-  <button 
-    onClick={(e) => { e.stopPropagation(); onClick(); }}
-    className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-accent/10 text-accent text-[10px] font-bold hover:bg-accent hover:text-white transition-all cursor-help border border-accent/20"
-    title="Neden ve Nasıl?"
-  >
-    ?
-  </button>
-);
+
 
 export default function Hub({ posts }: { posts: Post[] }) {
   const { t } = useLanguage();
+  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
 
   const platforms = [
     { name: t('hub.p1_name'), energy: 15, desc: t('hub.p1_desc') },
@@ -24,15 +19,39 @@ export default function Hub({ posts }: { posts: Post[] }) {
 
   return (
     <div className="space-y-10 pb-32">
-      <div className="space-y-2">
-        <h2 className="serif text-4xl italic text-text" id="nav-hub">
-          {t('hub.title')}
-          <HelpTrigger onClick={() => window.dispatchEvent(new CustomEvent('start-tour', { detail: { step: 8 } }))} />
-        </h2>
+      <div className="space-y-4 mb-8">
+        <div className="flex items-center justify-between">
+          <h2 className="serif text-4xl italic text-text" id="nav-hub">
+            {t('hub.title')}
+          </h2>
+          <button 
+            onClick={() => setIsInfoModalOpen(true)}
+            className="flex items-center justify-center w-7 h-7 bg-accent/10 hover:bg-accent hover:text-white text-accent rounded-full text-[14px] font-bold transition-all shadow-sm border border-accent/20"
+            title="Bilgi"
+          >
+            i
+          </button>
+        </div>
         <p className="text-sm text-muted leading-relaxed serif italic">
           {t('hub.subtitle')}
         </p>
       </div>
+
+      <InfoModal
+        isOpen={isInfoModalOpen}
+        onClose={() => setIsInfoModalOpen(false)}
+        title={t('hub.title')}
+        content={
+          <div className="space-y-4">
+            <div className="border-l-4 border-accent pl-3 py-1">
+              <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">Domain Sahibi Ol</h4>
+              <p className="text-sm italic">"Sosyal ağlar birer uydudur. Karargahın ise senin kontrolünde olmalıdır." — Austin Kleon</p>
+            </div>
+            <p className="text-sm">Burası senin klanını topladığın yer. Tüm yayınlarını buradan yönet. Social Graph (Sosyal Grafiğini) burada kendin kontrol edersin.</p>
+            <p className="text-sm">Paylaşımlarının ne kadar enerji tükettiğini (Vampir Testi) ve hangi platformlarda ne kadar etki yarattığını buradan takip edebilirsin.</p>
+          </div>
+        }
+      />
 
       <div className="flex flex-col items-center gap-12 py-10 relative">
         {/* Core Hub */}

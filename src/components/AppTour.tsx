@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronRight, ChevronLeft } from 'lucide-react';
 
@@ -9,6 +9,8 @@ interface TourStep {
   placement?: 'top' | 'bottom' | 'left' | 'right';
   // Hangi wizard adımına geçilmeli
   wizardStep?: number;
+  // Hangi stock wizard adımına geçilmeli
+  stockWizardStep?: number;
   // Hangi tab açılmalı
   tab?: 'flow' | 'cabinet' | 'hub';
   // Bu adımda beklenecek extra süre (ms) — DOM render için
@@ -42,7 +44,7 @@ const buildSteps = (): TourStep[] => [
         <p className="text-sm">Buraya en küçük gözlemini bile yaz. Amatörler, kaybedecek bir şeyi olmadığı için denemekten çekinmezler.</p>
       </div>
     ),
-    placement: 'bottom',
+    placement: 'right',
   },
   {
     target: '#tag-input',
@@ -55,7 +57,7 @@ const buildSteps = (): TourStep[] => [
         <p className="text-[10px] font-bold text-accent uppercase tracking-widest">Devam Et butonuna basarak ilerleyebilirsin.</p>
       </div>
     ),
-    placement: 'top',
+    placement: 'right',
   },
   {
     target: '#step-24h',
@@ -77,7 +79,7 @@ const buildSteps = (): TourStep[] => [
         </div>
       </div>
     ),
-    placement: 'top',
+    placement: 'right',
   },
   {
     target: '#wizard-media',
@@ -99,7 +101,7 @@ const buildSteps = (): TourStep[] => [
         </div>
       </div>
     ),
-    placement: 'top',
+    placement: 'right',
   },
   {
     target: '#raw-material',
@@ -111,7 +113,7 @@ const buildSteps = (): TourStep[] => [
         <p className="text-sm">Kod parçaları, karalamalar veya ham notlarını buraya dök. Austin Kleon'a göre <em>"Ham halini paylaşmak dürüstlüktür."</em></p>
       </div>
     ),
-    placement: 'top',
+    placement: 'right',
   },
   {
     target: '#so-what-step',
@@ -134,7 +136,7 @@ const buildSteps = (): TourStep[] => [
         </div>
       </div>
     ),
-    placement: 'bottom',
+    placement: 'right',
   },
   {
     target: '#narrative-step',
@@ -151,7 +153,7 @@ const buildSteps = (): TourStep[] => [
         <p className="text-sm">Geçmişte ne hedefledin, şimdi neredesin? İki cümle yeter — hikayeni buraya yaz.</p>
       </div>
     ),
-    placement: 'bottom',
+    placement: 'right',
   },
   {
     target: '#attribution-step',
@@ -168,10 +170,10 @@ const buildSteps = (): TourStep[] => [
         <p className="text-sm">İlham aldığın kişiyi ve kaynağı belirt. Sonra <strong>Harmanla →</strong> butonuna bas.</p>
       </div>
     ),
-    placement: 'top',
+    placement: 'right',
   },
   {
-    target: '#polished-story-preview',
+    target: '#story-preview-header',
     title: '9. Harmanlanan Hikaye',
     tab: 'flow',
     wizardStep: 5,
@@ -182,10 +184,10 @@ const buildSteps = (): TourStep[] => [
           <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">Son Rötuş</h4>
           <p className="text-sm italic">"İyi bir fikir asla tam bitmez, sadece yayınlanır." — Kleon</p>
         </div>
-        <p className="text-sm">Metni düzenleyebilir veya ✨ <strong>AI Süsle</strong> butonuyla zenginleştirebilirsin. Sonra <strong>Devam →</strong> butonuna bas.</p>
+        <p className="text-sm">Aşağıdaki alandan metni düzenleyebilir veya ✨ <strong>AI Süsle</strong> butonuyla zenginleştirebilirsin. Sonra <strong>Devam →</strong> butonuna bas.</p>
       </div>
     ),
-    placement: 'top',
+    placement: 'bottom',
   },
   {
     target: '#vampire-step',
@@ -252,8 +254,157 @@ const buildSteps = (): TourStep[] => [
     placement: 'right',
   },
   {
+    target: '#cabinet-tags',
+    title: '14. Etiket Filtreleri',
+    tab: 'cabinet',
+    waitMs: 300,
+    content: (
+      <div className="space-y-4">
+        <p className="text-sm">Fikirlerini etiketlerine göre filtreleyebilir, belli bir kavrama yönelik yazdığın tüm notları tek seferde görebilirsin.</p>
+      </div>
+    ),
+    placement: 'bottom',
+  },
+  {
+    target: '#stock-wizard-target',
+    title: '15. Stok Birikti Uyarıları',
+    tab: 'cabinet',
+    waitMs: 300,
+    content: (
+      <div className="space-y-4">
+        <p className="text-sm">Eğer bir etikette 3 veya 10 nota ulaşırsan, etiketin üzerinde bir ünlem belirir. Austin Kleon'un dediği gibi: "Fikirlerini biriktir." Biriken notları tek tıklamayla harmanlayıp rehberlere (taslaklara) dönüştürebilirsin!</p>
+      </div>
+    ),
+    placement: 'bottom',
+  },
+  {
+    target: '#stock-step-0',
+    title: '16. Seçim',
+    tab: 'cabinet',
+    stockWizardStep: 0,
+    waitMs: 500,
+    content: (
+      <div className="space-y-4">
+        <p className="text-sm">Birleştirmek istediğin fikirleri seç. Noktaları birleştirip bütünü görmek ilk adımdır.</p>
+      </div>
+    ),
+    placement: 'right',
+  },
+  {
+    target: '#stock-step-1',
+    title: '17. Örüntü',
+    tab: 'cabinet',
+    stockWizardStep: 1,
+    waitMs: 500,
+    content: (
+      <div className="space-y-4">
+        <p className="text-sm">Seçtiğin fikirlerdeki en yaygın kelimeleri incelersin. Rehberinde vurgulamak istediklerini onayla.</p>
+      </div>
+    ),
+    placement: 'right',
+  },
+  {
+    target: '#stock-step-2',
+    title: '18. Şablon Kesinleştirme',
+    tab: 'cabinet',
+    stockWizardStep: 2,
+    waitMs: 500,
+    content: (
+      <div className="space-y-4">
+        <p className="text-sm">Bulunan örüntüye en uygun şablonu (Teknik Rehber, Belgesel vs.) sistem otomatik önerir. İstersen değiştirebilirsin.</p>
+      </div>
+    ),
+    placement: 'right',
+  },
+  {
+    target: '#template-technical',
+    title: '19. Şablon: Adım Adım Rehber',
+    tab: 'cabinet',
+    stockWizardStep: 2,
+    waitMs: 500,
+    content: (
+      <div className="space-y-4">
+        <p className="text-sm">Austin Kleon der ki: "Öğrendiğinde başkalarına da öğret." Bir konuyu nasıl anladığını basit adımlarla kimseye tepeden bakmadan anlatmak için bu kalıbı seç.</p>
+      </div>
+    ),
+    placement: 'bottom',
+  },
+  {
+    target: '#template-documentary',
+    title: '20. Şablon: Belgesel',
+    tab: 'cabinet',
+    stockWizardStep: 2,
+    waitMs: 500,
+    content: (
+      <div className="space-y-4">
+        <p className="text-sm">"Nihai ürünü değil, süreci paylaş." Karşılaştığın zorlukları, kırılma anlarını ve ulaştığın sonuçları hikaye formatında aktarmak için bu şablonu kullan.</p>
+      </div>
+    ),
+    placement: 'bottom',
+  },
+  {
+    target: '#template-readingList',
+    title: '21. Şablon: Atıf Kitapçığı',
+    tab: 'cabinet',
+    stockWizardStep: 2,
+    waitMs: 500,
+    content: (
+      <div className="space-y-4">
+        <p className="text-sm">"Sen, okuduklarının bir karışımısın." Etkilendiğin kaynakları, kimlerden hangi fikirleri çaldığını (alıntıladığını) saygıyla derleyip sunmak içindir.</p>
+      </div>
+    ),
+    placement: 'bottom',
+  },
+  {
+    target: '#template-oldVsNew',
+    title: '22. Şablon: Eski vs. Yeni',
+    tab: 'cabinet',
+    stockWizardStep: 2,
+    waitMs: 500,
+    content: (
+      <div className="space-y-4">
+        <p className="text-sm">Eski inançlarının nasıl yıkıldığını ve yeni öğrendiklerinle (zıtlıklarla) nasıl yer değiştirdiğini sert geçişlerle göstermek içindir.</p>
+      </div>
+    ),
+    placement: 'bottom',
+  },
+  {
+    target: '#stock-step-3',
+    title: '23. Rehberi Oluştur',
+    tab: 'cabinet',
+    stockWizardStep: 3,
+    waitMs: 500,
+    content: (
+      <div className="space-y-4">
+        <div className="border-l-4 border-accent pl-3 py-1">
+          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">Düşünceleri Harmanla</h4>
+          <p className="text-sm italic">"Noktaları birleştir, bütünü gör." — Austin Kleon</p>
+        </div>
+        <p className="text-sm">Eski fikirlerini referans alarak yeni ve büyük bir rehber yaz. Aşağıdaki kutularda listelenen ilgili soruları kendi kelimelerinle cevapla.</p>
+        <div className="bg-accent/10 rounded-xl p-3 space-y-2">
+          <p className="text-[10px] font-bold text-accent uppercase tracking-widest">İpucu:</p>
+          <p className="text-xs">Alt kısımda yer alan <strong>"Seçtiğin fikirlerden"</strong> butonlarına tıklayarak notlarını anında kutuya ekleyebilir, sonra onları kendi cümlelerinle birleştirebilirsin.</p>
+        </div>
+      </div>
+    ),
+    placement: 'bottom',
+  },
+  {
+    target: '#stock-step-4',
+    title: '24. Son Rötuş ve Yayın',
+    tab: 'cabinet',
+    stockWizardStep: 4,
+    waitMs: 500,
+    content: (
+      <div className="space-y-4">
+        <p className="text-sm">Eserini gözden geçir ve istersen Hub'da yayınla. Austin Kleon'un tavsiye ettiği gibi stoklarını erittin!</p>
+      </div>
+    ),
+    placement: 'right',
+  },
+  {
     target: '#nav-hub',
-    title: '14. Dünya Karargahı',
+    title: '25. Dünya Karargahı',
     tab: 'hub',
     waitMs: 500,
     content: (
@@ -279,11 +430,42 @@ function getTooltipPosition(
   const tooltipRect = tooltipEl.getBoundingClientRect();
   const MARGIN = 12;
   const ARROW = 10;
+  const WIN_W = window.innerWidth;
+  const WIN_H = window.innerHeight;
+
+  if (WIN_W < 768) {
+    return {
+      top: WIN_H - tooltipRect.height - 16,
+      left: (WIN_W - tooltipRect.width) / 2
+    };
+  }
+
+  // Available space calculations
+  const spaceTop = targetRect.top;
+  const spaceBottom = WIN_H - targetRect.bottom;
+  const spaceLeft = targetRect.left;
+  const spaceRight = WIN_W - targetRect.right;
+  const reqWidth = tooltipRect.width + MARGIN + ARROW;
+  const reqHeight = tooltipRect.height + MARGIN + ARROW;
+
+  // Decision logic for actual placement
+  let actualPlacement = placement;
+
+  // Mobile fallback or space shortage fallback
+  if (WIN_W < 1024 && (placement === 'right' || placement === 'left')) {
+    actualPlacement = spaceBottom > spaceTop ? 'bottom' : 'top';
+  }
+
+  // Ensure chosen placement actually fits
+  if (actualPlacement === 'right' && spaceRight < reqWidth) actualPlacement = spaceLeft > spaceRight ? 'left' : (spaceBottom > spaceTop ? 'bottom' : 'top');
+  if (actualPlacement === 'left' && spaceLeft < reqWidth) actualPlacement = spaceRight > spaceLeft ? 'right' : (spaceBottom > spaceTop ? 'bottom' : 'top');
+  if (actualPlacement === 'bottom' && spaceBottom < reqHeight) actualPlacement = spaceTop > reqHeight ? 'top' : (spaceRight > spaceLeft ? 'right' : 'left');
+  if (actualPlacement === 'top' && spaceTop < reqHeight) actualPlacement = spaceBottom > reqHeight ? 'bottom' : (spaceRight > spaceLeft ? 'right' : 'left');
 
   let top = 0;
   let left = 0;
 
-  switch (placement) {
+  switch (actualPlacement) {
     case 'bottom':
       top = targetRect.bottom + MARGIN + ARROW;
       left = targetRect.left + targetRect.width / 2 - tooltipRect.width / 2;
@@ -302,10 +484,15 @@ function getTooltipPosition(
       break;
   }
 
-  // Ekran sınırlarına göre düzelt
+  // Safe clamping to keep it completely inside the viewport, but only on the NON-overlap axis
   const padding = 16;
-  left = Math.max(padding, Math.min(left, window.innerWidth - tooltipRect.width - padding));
-  top = Math.max(padding, Math.min(top, window.innerHeight - tooltipRect.height - padding));
+  if (actualPlacement === 'top' || actualPlacement === 'bottom') {
+    left = Math.max(padding, Math.min(left, WIN_W - tooltipRect.width - padding));
+    // Do not aggressively clamp `top`. Let `scrollIntoView` or inherent page scroll handle it, so it doesn't overlap the target.
+    // If we absolutely must push it, only push it if it goes completely beyond the document (but window bounds are enough).
+  } else {
+    top = Math.max(padding, Math.min(top, WIN_H - tooltipRect.height - padding));
+  }
 
   return { top, left };
 }
@@ -352,7 +539,7 @@ export function AppTour({
   isSidebarOpen,
   setIsSidebarOpen,
 }: AppTourProps) {
-  const steps = buildSteps();
+  const steps = useMemo(() => buildSteps(), []);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 });
@@ -362,14 +549,43 @@ export function AppTour({
   const currentStep = steps[stepIndex];
 
   // ─── HEDEF ELEMENTI BUL ───────────────────────────────────────────────────
-  const findAndPositionTarget = useCallback(() => {
+  const findAndPositionTarget = useCallback((retryCount = 0) => {
     if (!currentStep || !run) return;
     const el = document.querySelector(currentStep.target);
-    if (!el) return;
+    
+    if (!el) {
+      if (retryCount < 12) { 
+        setTimeout(() => findAndPositionTarget(retryCount + 1), 200);
+      } else {
+        console.warn(`Tour target not found: ${currentStep.target}`);
+        // Default to center if not found
+        setTargetRect(null);
+        if (tooltipRef.current) {
+          const tooltipRect = tooltipRef.current.getBoundingClientRect();
+          setTooltipPos({
+             top: window.innerHeight / 2 - tooltipRect.height / 2,
+             left: window.innerWidth / 2 - tooltipRect.width / 2
+          });
+        }
+        setVisible(true);
+        setIsTransitioning(false);
+      }
+      return;
+    }
 
     const rect = el.getBoundingClientRect();
+    // Eğer element görünür değilse (yüksekliği 0 ise) bekle
+    if (rect.height === 0 && retryCount < 12) {
+      setTimeout(() => findAndPositionTarget(retryCount + 1), 200);
+      return;
+    }
+
     setTargetRect(rect);
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const WIN_W = window.innerWidth;
+    
+    // On mobile, scroll to top so the bottom tooltip doesn't overlap.
+    const isMobile = WIN_W < 768;
+    el.scrollIntoView({ behavior: 'smooth', block: isMobile ? 'start' : 'center' });
 
     setTimeout(() => {
       if (tooltipRef.current) {
@@ -377,6 +593,7 @@ export function AppTour({
         setTooltipPos(pos);
       }
       setVisible(true);
+      setIsTransitioning(false);
     }, 150);
   }, [currentStep, run]);
 
@@ -401,11 +618,20 @@ export function AppTour({
       }));
     }
 
-    // DOM'un render olması için bekle
-    const waitTime = currentStep.waitMs ?? 300;
+    if (currentStep.stockWizardStep !== undefined) {
+      window.dispatchEvent(new CustomEvent('set-stock-wizard-step', {
+        detail: { step: currentStep.stockWizardStep }
+      }));
+    } else {
+      window.dispatchEvent(new CustomEvent('set-stock-wizard-step', {
+        detail: { step: -1 }
+      }));
+    }
+
+    // DOM'un render olması için bekle. Wizard geçişleri 400ms sürer.
+    const waitTime = currentStep.waitMs ?? (currentStep.wizardStep !== undefined || currentStep.stockWizardStep !== undefined ? 600 : 300);
     const timer = setTimeout(() => {
       findAndPositionTarget();
-      setIsTransitioning(false);
     }, waitTime);
 
     return () => clearTimeout(timer);
@@ -463,7 +689,8 @@ export function AppTour({
           top: tooltipPos.top,
           left: tooltipPos.left,
           zIndex: 9999,
-          width: 340,
+          width: '100%',
+          maxWidth: 340,
           opacity: visible && !isTransitioning ? 1 : 0,
           transform: visible && !isTransitioning ? 'translateY(0) scale(1)' : 'translateY(8px) scale(0.97)',
           transition: 'opacity 0.25s ease, transform 0.25s ease',

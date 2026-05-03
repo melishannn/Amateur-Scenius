@@ -33,7 +33,7 @@ const translations: Record<Language, Record<string, string>> = {
     'profile.guest_mode': 'Misafir Modundasın',
     'profile.guest_desc': 'Şu anki fikirlerin sadece bu tarayıcıda geçici olarak saklanıyor. Kalıcı olarak depolamak ve senkronize etmek için giriş yapmalısın.',
     'profile.login_btn': 'Google ile Giriş Yap',
-    'profile.credits': 'Melogicard tarafından geliştirilmiştir',
+    'profile.credits': 'Mühendisin Kitaplığı tarafından geliştirilmiştir.',
 
     // Hub
     'hub.title': 'Dünya Karargahı',
@@ -119,7 +119,7 @@ const translations: Record<Language, Record<string, string>> = {
     'profile.guest_mode': 'You are in Guest Mode',
     'profile.guest_desc': 'Your current ideas are only temporarily stored in this browser. You must log in to store and sync them permanently.',
     'profile.login_btn': 'Sign In with Google',
-    'profile.credits': 'Developed by Melogicard',
+    'profile.credits': 'Developed by Mühendisin Kitaplığı',
 
     // Hub
     'hub.title': 'World HQ',

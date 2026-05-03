@@ -188,15 +188,8 @@ export default function Navigation({ activeTab, setActiveTab, user, login, logou
           />
         </motion.div>
 
-        {/* Footer / Credits and Tour Button */}
+        {/* Footer / Credits */}
         <div className="flex items-center justify-center gap-4 pb-4 md:pb-0">
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent('start-tour'))}
-            className="w-6 h-6 flex items-center justify-center rounded-full border border-border text-muted hover:text-accent hover:border-accent transition-colors text-xs font-bold"
-            title="Turu Başlat"
-          >
-            ?
-          </button>
           <div className="text-[10px] text-center text-muted uppercase tracking-widest opacity-40">
             {t('nav.credits')}
           </div>

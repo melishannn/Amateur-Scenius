@@ -1,8 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { Post } from '../types';
-import { Sparkles, Trash2, CheckCircle2, ChevronRight, Share2, Image as ImageIcon, Mic, Quote, Wand2, Type, Music } from 'lucide-react';
+import { Sparkles, Trash2, CheckCircle2, ChevronRight, Share2, Image as ImageIcon, Mic, Quote, Wand2, Type, Music, Info, X, FileText, Layout, Palette, Clock, Tag, Send, ChevronLeft } from 'lucide-react';
+import { InfoModal } from './ui/InfoModal';
 
 interface WizardProps {
   addPost: (post: Post) => void;
@@ -96,18 +97,11 @@ const GUIDE_FIELDS = {
   ],
 } as const;
 
-const HelpTrigger = ({ onClick }: { onClick: () => void }) => (
-  <button 
-    onClick={(e) => { e.stopPropagation(); onClick(); }}
-    className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-accent/10 text-accent text-[10px] font-bold hover:bg-accent hover:text-white transition-all cursor-help border border-accent/20"
-    title="Neden ve Nasıl?"
-  >
-    ?
-  </button>
-);
+
 
 export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, saveHemingway }: WizardProps) {
   const { t } = useLanguage();
+  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isTagsAiLoading, setIsTagsAiLoading] = useState(false);
@@ -120,6 +114,10 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
     const handleSetStep = (e: any) => {
       if (e.detail?.step !== undefined) {
         setStep(e.detail.step);
+        // Eğer tur başlıyorsa (adım 0'a çekiliyorsa), rehber modunu kapat ki normal akış hedefleri bulunsun
+        if (e.detail.step === 0) {
+          setFormData(prev => ({ ...prev, rehberType: '', isTeaching: false }));
+        }
       }
     };
     window.addEventListener('set-wizard-step', handleSetStep);
@@ -575,10 +573,18 @@ MANDATORY INSTRUCTIONS:
         </div>
       )}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="serif text-4xl italic text-text">
-          {t('Fikir Defteri')}
-          <HelpTrigger onClick={() => window.dispatchEvent(new CustomEvent('start-tour', { detail: { step: 0 } }))} />
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2 className="serif text-4xl italic text-text">
+            {t('Fikir Defteri')}
+          </h2>
+          <button 
+            onClick={() => setIsInfoModalOpen(true)}
+            className="flex items-center justify-center w-7 h-7 bg-accent/10 hover:bg-accent hover:text-white text-accent rounded-full text-[14px] font-bold transition-all shadow-sm border border-accent/20"
+            title="Bilgi"
+          >
+            i
+          </button>
+        </div>
         <button 
           onClick={() => window.dispatchEvent(new CustomEvent('start-tour'))}
           className="flex items-center gap-2 px-4 py-2 bg-accent/10 hover:bg-accent hover:text-white text-accent rounded-full text-[11px] font-bold uppercase tracking-widest transition-all shadow-sm border border-accent/20"
@@ -649,7 +655,6 @@ MANDATORY INSTRUCTIONS:
     <div key="s1" className="space-y-8 text-center py-10" id="step-24h">
       <h2 className="serif text-4xl italic text-text">
         {t('24 Saat Testi')}
-        <HelpTrigger onClick={() => window.dispatchEvent(new CustomEvent('start-tour', { detail: { step: 1 } }))} />
       </h2>
       <p className="text-lg text-muted serif italic max-w-sm mx-auto leading-relaxed">
         {t('Bu fikri 24 saatten uzun süredir düşünüyor musun?')}
@@ -664,7 +669,6 @@ MANDATORY INSTRUCTIONS:
     <div key="s2" className="space-y-6" id="wizard-media">
       <h2 className="serif text-4xl italic text-text">
         {t('Döküman & Artıklar')}
-        <HelpTrigger onClick={() => window.dispatchEvent(new CustomEvent('start-tour', { detail: { step: 2 } }))} />
       </h2>
       <div className="flex flex-wrap gap-3 py-2">
         <button onClick={() => mediaInputRef.current?.click()} className="flex flex-col items-center justify-center w-24 h-24 bg-surface border-2 border-dashed border-border rounded-[24px] hover:border-accent transition-all group">
@@ -734,7 +738,6 @@ MANDATORY INSTRUCTIONS:
     <div key="s3" className="space-y-8" id="so-what-step">
       <h2 className="serif text-4xl italic text-text">
         {t('So What? Testi')}
-        <HelpTrigger onClick={() => window.dispatchEvent(new CustomEvent('start-tour', { detail: { step: 3 } }))} />
       </h2>
       <div className="bg-danger-soft border-l-4 border-danger p-6 rounded-[24px] text-sm text-danger leading-relaxed italic">
         <strong>{t('Sturgeon Yasası:')}</strong> {t('Her şeyin %90\'ı çöptür. Neyin iyi neyin kötü olduğunu hemen bilemeyebilirsin.')}
@@ -835,7 +838,6 @@ MANDATORY INSTRUCTIONS:
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted">{t('Hikaye')}</span>
-                  <HelpTrigger onClick={() => window.dispatchEvent(new CustomEvent('start-tour', { detail: { step: 4 } }))} />
                   <span className="text-[9px] text-muted opacity-40 hidden sm:inline">{t('— geçmiş · şimdi · gelecek')}</span>
                 </div>
                 <button
@@ -872,7 +874,6 @@ MANDATORY INSTRUCTIONS:
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted">{t('Müze Etiketi')} <span className="opacity-40 normal-case font-normal">{t('(isteğe bağlı)')}</span></span>
-                  <HelpTrigger onClick={() => window.dispatchEvent(new CustomEvent('start-tour', { detail: { step: 5 } }))} />
                 </div>
                 {formData.attrLink && (
                   <span className="text-[9px] text-green-600 font-bold">{t('✓ link var')}</span>
@@ -932,7 +933,7 @@ MANDATORY INSTRUCTIONS:
       )}
 
       {formData.rehberType && (
-        <button onClick={nextStep} className="w-full bg-[#1a0f2e] dark:bg-surface text-[#f4effc] dark:text-text py-4 rounded-xl font-bold text-sm tracking-widest uppercase hover:bg-black dark:hover:bg-surface/80 transition-all shadow-xl">
+        <button onClick={nextStep} className="w-full bg-accent text-text py-4 rounded-xl font-bold text-sm tracking-widest uppercase hover:scale-[1.02] transition-all shadow-xl">
           {t('Önizleme →')}
         </button>
       )}
@@ -941,7 +942,7 @@ MANDATORY INSTRUCTIONS:
     // STEP 5: Hikaye Önizleme / Düzenleme
     <div key="s5" id="polished-story-preview" className="space-y-8">
       <div className="text-center space-y-2">
-        <h2 className="serif text-4xl italic text-text">{formData.rehberType ? 'Rehber Önizleme' : 'Harmanlanan Hikaye'}</h2>
+        <h2 className="serif text-4xl italic text-text" id="story-preview-header">{formData.rehberType ? 'Rehber Önizleme' : 'Harmanlanan Hikaye'}</h2>
         <p className="text-[10px] font-bold text-muted uppercase tracking-[0.2em]">{formData.rehberType ? 'Son Kontrol & Yayına Hazırlık' : 'Düzenle, Süste ve Yayınla'}</p>
       </div>
 
@@ -963,7 +964,7 @@ MANDATORY INSTRUCTIONS:
       )}
 
       {formData.rehberType ? (
-        <div className="bg-[#1a0f2e] dark:bg-surface text-[#f4effc] dark:text-text p-6 rounded-[24px] text-xs leading-relaxed text-center shadow-md">
+        <div className="bg-surface border border-border text-text p-6 rounded-[24px] text-xs leading-relaxed text-center shadow-md">
           <strong>{t('Kleon der ki:')}</strong> {t('"İyi bir fikir asla tam bitmez, sadece yayınlanır." Hatalarıyla kucakla. Bu senin')} <strong>{t('stoğun')}</strong>.
         </div>
       ) : (
@@ -1007,7 +1008,7 @@ MANDATORY INSTRUCTIONS:
           )}
         </div>
       </div>
-      <div className="bg-[#1a0f2e] dark:bg-surface text-[#f4effc] dark:text-text p-8 rounded-[32px] border dark:border-border text-sm leading-relaxed mt-6 shadow-xl">
+      <div className="bg-surface border border-border text-text p-8 rounded-[32px] text-sm leading-relaxed mt-6 shadow-xl">
         <strong>{t('Mükemmeliyetçilik Bir Hapishanedir:')}</strong> {t('Öleceksin. Bu yüzden bu kusurlu haliyle yayınla. Gerçek başarı sürekliliktedir.')}
       </div>
       <div id="wizard-actions">
@@ -1024,14 +1025,14 @@ MANDATORY INSTRUCTIONS:
         <h2 className="serif text-4xl italic text-text uppercase tracking-widest">{formData.rehberType ? 'STOK TAMAMLANDI' : 'BAŞARDIN ✓'}</h2>
       </div>
       {formData.rehberType ? (
-        <div className="bg-[#1a0f2e] dark:bg-surface text-[#f4effc] dark:text-text p-10 rounded-[48px] border dark:border-border shadow-2xl space-y-6">
+        <div className="bg-surface border border-border text-text p-10 rounded-[48px] shadow-2xl space-y-6">
           <h3 className="text-xl font-bold uppercase tracking-[0.2em]">{t('Kalıcı Bir Değer Yarattın')}</h3>
           <p className="text-base italic leading-relaxed opacity-80 serif">{t('"Fikirlerinizi stoklayın. Onları biriktirin, düzenleyin ve başkalarına fayda sağlayacak bir bütüne dönüştürün."')}</p>
           <div className="pt-4 opacity-50 text-[10px] uppercase tracking-widest">{t('— Austin Kleon, Show Your Work')}</div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-[#1a0f2e] dark:bg-surface text-[#f4effc] dark:text-text p-8 rounded-[32px] text-xs leading-relaxed text-left border dark:border-border shadow-2xl"><strong>{t('Bugün bir iz bıraktın.')}</strong> {t('Austin Kleon: "Başkalarının işlerini çalın, kendi stilinizi harmanlayın."')}</div>
+          <div className="bg-accent/5 text-text p-8 rounded-[32px] text-xs leading-relaxed text-left border border-accent/20 shadow-2xl"><strong>{t('Bugün bir iz bıraktın.')}</strong> {t('Austin Kleon: "Başkalarının işlerini çalın, kendi stilinizi harmanlayın."')}</div>
           <div className="bg-green-soft border border-green/20 p-8 rounded-[32px] text-xs text-green leading-relaxed text-left shadow-sm"><strong>{t('Sabbatical Başladı:')}</strong> {t('Cihazları kapat. Bir ağaca bak. Köpeğini gezdir.')}</div>
         </div>
       )}
@@ -1087,6 +1088,22 @@ MANDATORY INSTRUCTIONS:
           <Trash2 size={16} />
         </button>
       </div>
+
+      <InfoModal
+        isOpen={isInfoModalOpen}
+        onClose={() => setIsInfoModalOpen(false)}
+        title={t('Fikir Defteri')}
+        content={
+          <div className="space-y-4">
+            <div className="border-l-4 border-accent pl-3 py-1">
+              <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">Yaratıcı Hırsızlık</h4>
+              <p className="text-sm italic">"İyi bir sanatçı kopyalamaz, çalar." — Austin Kleon</p>
+            </div>
+            <p className="text-sm">Burası senin fikirlerinin tohumlandığı yer. Aklına gelen her şeyi not al, etiketle ve sakla.</p>
+            <p className="text-sm">Fikirlerini daha sonra <strong>Merak Kabinesi</strong>'nde harmanlayabilir, buradaki <strong>Kleon Playbook</strong> ile yaratıcılığını artıracak taktikler öğrenebilirsin.</p>
+          </div>
+        }
+      />
     </div>
   );
 }
