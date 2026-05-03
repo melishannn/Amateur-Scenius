@@ -1,9 +1,12 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { Post } from '../types';
-import { Sparkles, Trash2, CheckCircle2, ChevronRight, Share2, Image as ImageIcon, Mic, Quote, Wand2, Type, Music, Info, X, FileText, Layout, Palette, Clock, Tag, Send, ChevronLeft } from 'lucide-react';
+import { Sparkles, Trash2, CheckCircle2, ChevronRight, Share2, ImageIcon, Mic, Quote, Wand2, Type, Music, Info, X, FileText, Layout, Palette, Clock, Tag, Send, ChevronLeft } from 'lucide-react';
 import { InfoModal } from './ui/InfoModal';
+import { GoogleGenAI } from "@google/genai";
+
+const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 interface WizardProps {
   addPost: (post: Post) => void;
@@ -98,6 +101,52 @@ const GUIDE_FIELDS = {
 } as const;
 
 
+
+// ─── MEMOIZED AI OUTPUT DISPLAY ────────────────────────────────────────────────
+const PolishedStoryDisplay = memo(({ 
+  value, 
+  onChange, 
+  onRefresh, 
+  isLoading, 
+  t 
+}: { 
+  value: string; 
+  onChange: (v: string) => void; 
+  onRefresh: () => void; 
+  isLoading: boolean; 
+  t: (k: string) => string;
+}) => {
+  const polishedStoryRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isLoading && polishedStoryRef.current) {
+      polishedStoryRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, [value, isLoading]);
+
+  return (
+    <div className="relative group" ref={polishedStoryRef}>
+      <textarea 
+        value={value} 
+        onChange={e => onChange(e.target.value)} 
+        className="w-full bg-surface p-8 pt-10 border border-border rounded-[32px] text-lg leading-relaxed text-text italic serif shadow-md min-h-[320px] focus:border-accent outline-none transition-all" 
+        placeholder={t("Hikaye oluşturuluyor...")} 
+      />
+      <div className="absolute top-4 left-8 flex items-center gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
+        <Type size={14} className="text-muted" /><span className="text-[9px] font-bold uppercase tracking-widest text-muted">{t('DÜZENLENEBİLİR')}</span>
+      </div>
+      <button 
+        onClick={onRefresh} 
+        disabled={isLoading} 
+        className="absolute -top-3 -right-3 w-14 h-14 bg-accent text-text rounded-full flex flex-col items-center justify-center shadow-2xl hover:scale-110 transition-transform disabled:opacity-50 z-10 border-4 border-surface" 
+        title="AI ile Süsle"
+      >
+        {isLoading ? <Wand2 size={24} className="animate-spin" /> : <Sparkles size={24} />}
+        <span className="text-[7px] font-bold mt-0.5">{t('SÜSLE')}</span>
+      </button>
+    </div>
+  );
+});
 
 export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, saveHemingway }: WizardProps) {
   const { t } = useLanguage();
@@ -227,7 +276,7 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
     doc: '',
     isAmateur: false,
     isTeaching: false,
-    platform: 'Kendi Web Sitem',
+    platform: t('Kendi Web Sitem — Karargah'),
     attrName: '',
     attrLink: '',
     attrHow: '',
@@ -268,53 +317,57 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
     setStep(0);
   };
 
-  const set = (key: keyof typeof formData, val: any) =>
-    setFormData(prev => ({ ...prev, [key]: val }));
+  const set = useCallback((key: keyof typeof formData, val: any) =>
+    setFormData(prev => ({ ...prev, [key]: val })), []);
 
   // ─── AI FONKSİYONLARI ──────────────────────────────────────────────────────
-  const fetchGemini = async (model: string, contents: any, config?: any) => {
-    // Ücretli Gemini API bağımlılığını kaldırmak için simülasyon (Mock)
-    await new Promise(r => setTimeout(r, 1000));
-    const prompt = typeof contents === 'string' ? contents : JSON.stringify(contents);
-    
-    if (prompt.includes('hashtag öner')) {
-      return { text: 'fikir, not, gelişim' };
+  const fetchGemini = useCallback(async (modelName: string, contents: any, config?: any) => {
+    try {
+      const response = await genAI.models.generateContent({
+        model: modelName || "gemini-3-flash-preview",
+        contents: contents,
+        config: config
+      });
+      return { text: response.text || "" };
+    } catch (error) {
+      console.error("Gemini API Error:", error);
+      return { text: "" };
     }
-    if (prompt.includes('vampir uyarısı') || prompt.includes('Vampir Testi')) {
-      return { 
-        text: JSON.stringify({ 
-          quote: "Paylaşım, kendi sürecinin belgeselidir. Göstermekten korkma.", 
-          author: "Simüle Austin Kleon", 
-          warnings: ["Mükemmeliyetçilik", "Onaylanma ihtiyacı", "Gizlilik saplantısı"]
-        }) 
-      };
-    }
-    if (prompt.includes('anahtar kelimeyi')) {
-      return { text: JSON.stringify(['süreç', 'öğrenme', 'hata', 'paylaşım', 'dikkat']) };
-    }
-    if (prompt.includes('Hangi rehber şablonuna daha uygun?')) {
-      return { text: 'oldVsNew' };
-    }
-    if (prompt.includes('rehber şablonuna göre')) {
-      return { text: '{\"q1\":\"Simüle edilmiş AI çıkarımı...\"}' };
-    }
-    if (prompt.includes('transkriptini çıkar') || prompt.includes('özetle')) {
-      return { text: 'Bugün harika şeyler denedim. Süreç beklediğimden daha zordu ama çok şey öğrendim.' };
-    }
-    
-    return { text: 'Simüle edilmiş yanıt.' };
-  };
+  }, []);
 
-  const handleSuggestTags = async () => {
+  const fetchGeminiStream = useCallback(async (modelName: string, contents: any, onChunk: (text: string) => void, config?: any) => {
+    try {
+      const response = await genAI.models.generateContentStream({
+        model: modelName || "gemini-3-flash-preview",
+        contents: contents,
+        config: config
+      });
+
+      let fullText = "";
+      for await (const chunk of response) {
+        const text = chunk.text;
+        if (text) {
+          fullText += text;
+          onChunk(fullText);
+        }
+      }
+      return { text: fullText };
+    } catch (error) {
+      console.error("Gemini Streaming Error:", error);
+      return { text: "" };
+    }
+  }, []);
+
+  const handleSuggestTags = useCallback(async () => {
     if (!formData.idea) return;
     setIsTagsAiLoading(true);
     try {
       const r = await fetchGemini('gemini-3-flash-preview', `Fikir: "${formData.idea}". 3-5 Türkçe hashtag öner. Sadece virgülle ayır, # koyma. Örn: yazılım, tasarım`);
       if (r.text) set('tags', r.text.trim());
     } catch (e) { console.error(e); } finally { setIsTagsAiLoading(false); }
-  };
+  }, [formData.idea, fetchGemini, set]);
 
-  const handleGenerateVampireQuote = async () => {
+  const handleGenerateVampireQuote = useCallback(async () => {
     setIsVampireAiLoading(true);
     try {
       const r = await fetchGemini(
@@ -336,9 +389,9 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
         }
       }
     } catch (e) { console.error(e); } finally { setIsVampireAiLoading(false); }
-  };
+  }, [formData.idea, fetchGemini]);
 
-  const handleGenerateNextLine = async () => {
+  const handleGenerateNextLine = useCallback(async () => {
     setIsNextLineAiLoading(true);
     try {
       const r = await fetchGemini(
@@ -358,9 +411,9 @@ MANDATORY INSTRUCTIONS:
       }
       set('nextLine', result);
     } catch (e) { console.error(e); } finally { setIsNextLineAiLoading(false); }
-  };
+  }, [formData.polishedStory, fetchGemini, set]);
 
-  const handleSummarizeDocs = async () => {
+  const handleSummarizeDocs = useCallback(async () => {
     const ctx = [formData.doc, ...formData.media.filter(m => m.type === 'text').map(m => `${m.name}: ${m.content}`)].filter(Boolean).join('\n');
     if (!ctx) return;
     setIsDocAiLoading(true);
@@ -371,13 +424,14 @@ MANDATORY INSTRUCTIONS:
       );
       if (r.text) set('idea', r.text.trim());
     } catch (e) { console.error(e); } finally { setIsDocAiLoading(false); }
-  };
+  }, [formData.doc, formData.media, formData.idea, fetchGemini, set]);
 
-  const handleAiPolish = async () => {
+  const handleAiPolish = useCallback(async () => {
     setIsAiLoading(true);
+    set('polishedStory', ''); // Clear before starting stream
     try {
       const currentText = formData.polishedStory || formData.q1;
-      const r = await fetchGemini(
+      await fetchGeminiStream(
         'gemini-3-flash-preview',
         `
           Sen bir "Amatör Scenius" rehberisin. Kullanıcının ham hikayesini Austin Kleon felsefesine uygun zenginleştir. 
@@ -399,11 +453,16 @@ MANDATORY INSTRUCTIONS:
           3. Somut metaforlar kullan
           4. Kısa, orta, ve uzun cümleleri ritmik bir şekilde kullan. Satır atlayarak ferah paragraflar yap.
           5. Okuyucuyu da denemeye davet eden bir bitiriş.
-        `
+        `,
+        (text) => set('polishedStory', text)
       );
-      if (r.text) set('polishedStory', r.text.trim());
-    } catch (e) { console.error(e); alert('AI hatası.'); } finally { setIsAiLoading(false); }
-  };
+    } catch (e) { 
+      console.error(e); 
+      alert('AI hatası.'); 
+    } finally { 
+      setIsAiLoading(false); 
+    }
+  }, [formData.polishedStory, formData.q1, formData.idea, formData.doc, formData.attrName, formData.attrLink, fetchGeminiStream, set]);
 
   // ─── ADIM YÖNLENDİRME ──────────────────────────────────────────────────────
   const nextStep = () => {
@@ -951,16 +1010,13 @@ MANDATORY INSTRUCTIONS:
           <div dangerouslySetInnerHTML={{ __html: generateFinalStory() }} />
         </div>
       ) : (
-        <div className="relative group">
-          <textarea value={formData.polishedStory} onChange={e => set('polishedStory', e.target.value)} className="w-full bg-surface p-8 pt-10 border border-border rounded-[32px] text-lg leading-relaxed text-text italic serif shadow-md min-h-[320px] focus:border-accent outline-none transition-all" placeholder={t("Hikaye oluşturuluyor...")} />
-          <div className="absolute top-4 left-8 flex items-center gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
-            <Type size={14} className="text-muted" /><span className="text-[9px] font-bold uppercase tracking-widest text-muted">{t('DÜZENLENEBİLİR')}</span>
-          </div>
-          <button onClick={handleAiPolish} disabled={isAiLoading} className="absolute -top-3 -right-3 w-14 h-14 bg-accent text-text rounded-full flex flex-col items-center justify-center shadow-2xl hover:scale-110 transition-transform disabled:opacity-50 z-10 border-4 border-surface" title="AI ile Süsle">
-            {isAiLoading ? <Wand2 size={24} className="animate-spin" /> : <Sparkles size={24} />}
-            <span className="text-[7px] font-bold mt-0.5">{t('SÜSLE')}</span>
-          </button>
-        </div>
+        <PolishedStoryDisplay 
+          value={formData.polishedStory} 
+          onChange={v => set('polishedStory', v)} 
+          onRefresh={handleAiPolish} 
+          isLoading={isAiLoading} 
+          t={t} 
+        />
       )}
 
       {formData.rehberType ? (

@@ -3,7 +3,12 @@ import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChang
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
-const app = initializeApp(firebaseConfig);
+const config = {
+  ...firebaseConfig,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseConfig.apiKey
+};
+
+const app = initializeApp(config);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId); // CRITICAL: Database ID is required
 export const auth = getAuth(app);
 
@@ -19,12 +24,25 @@ async function testConnection() {
 }
 testConnection();
 
+let isSigningIn = false;
+
 export const loginWithGoogle = async () => {
+  if (isSigningIn) return;
+  isSigningIn = true;
   const provider = new GoogleAuthProvider();
   try {
-    await signInWithPopup(auth, provider);
-  } catch (error) {
-    console.error("Error signing in with Google", error);
+    const result = await signInWithPopup(auth, provider);
+    return result;
+  } catch (error: any) {
+    if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
+      console.log("Sign-in request cancelled or popup closed.");
+      return null;
+    } else {
+      console.error("Error signing in with Google", error);
+      throw error;
+    }
+  } finally {
+    isSigningIn = false;
   }
 };
 

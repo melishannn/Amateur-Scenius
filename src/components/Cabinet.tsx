@@ -1,5 +1,5 @@
 import { useLanguage } from '../contexts/LanguageContext';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { Post } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Star, ChevronLeft, ArrowRight, Trash2, Music, FileText, Plus, X, AlertTriangle, Tag, Info } from 'lucide-react';
@@ -108,6 +108,74 @@ type DeleteTarget = {
 };
 
 
+
+const CabinetCard = memo(({ p, selectedItemIds, toggleSelection, toggleStar, setMoveTargetPostId, deleteSingle, stars, t, setSelectedPostId }: {
+  p: Post;
+  selectedItemIds: number[];
+  toggleSelection: (id: number) => void;
+  toggleStar: (id: number) => void;
+  setMoveTargetPostId: (id: number) => void;
+  deleteSingle: (id: number) => void;
+  stars: number[];
+  t: (k: string) => string;
+  setSelectedPostId: (id: number) => void;
+}) => (
+  <motion.div
+    layout
+    key={p.id}
+    onClick={() => {
+      const selection = window.getSelection();
+      if (!selection || selection.toString().length === 0) {
+        setSelectedPostId(p.id);
+      }
+    }}
+    className={`cabinet-card relative glass-card border p-8 rounded-[40px] shadow-sm hover:shadow-lg transition-all duration-500 cursor-pointer group hover:-translate-y-1 ${selectedItemIds.includes(p.id) ? 'border-accent ring-2 ring-accent/20' : 'border-border'}`}
+  >
+    <div className="absolute top-6 left-6 z-10" onClick={(e) => e.stopPropagation()}>
+      <input
+        type="checkbox"
+        checked={selectedItemIds.includes(p.id)}
+        onChange={() => toggleSelection(p.id)}
+        className="w-5 h-5 rounded border-border text-accent focus:ring-accent cursor-pointer"
+      />
+    </div>
+    <div className="flex justify-between items-center mb-6 pl-8 cabinet-card-actions">
+      <span className="text-[10px] font-bold tracking-[0.3em] text-muted uppercase">{p.date}</span>
+      <div className="flex items-center gap-3">
+        {!p.isPublished ? (
+          <span className="text-[9px] font-bold text-accent uppercase tracking-widest px-2 py-1 bg-accent/10 rounded-full border border-accent/20">{t('Taslak')}</span>
+        ) : (
+          <span className="text-[9px] font-bold text-success uppercase tracking-widest px-2 py-1 bg-success/10 rounded-full border border-success/20">{t('Yayınlanmış')}</span>
+        )}
+        <button
+          onClick={(e) => { e.stopPropagation(); toggleStar(p.id); }}
+          className="hover:scale-110 transition-transform p-1"
+          title="Yıldızla"
+        >
+          <Star size={18} className={stars.includes(p.id) ? "fill-[#FFD166] text-[#FFD166]" : "text-muted hover:text-[#FFD166]"} />
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); setMoveTargetPostId(p.id); }}
+          className="text-muted hover:text-[#4A72FF] hover:scale-110 transition-all p-1"
+          title="Kategoriyi Değiştir"
+        >
+          <Tag size={18} />
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); deleteSingle(p.id); }}
+          className="text-muted hover:text-danger hover:scale-110 transition-all p-1"
+          title="Fikri Sil"
+        >
+          <Trash2 size={18} />
+        </button>
+      </div>
+    </div>
+    <div
+      className="timeline-content text-lg md:text-xl leading-relaxed text-text serif italic opacity-90 group-hover:opacity-100 transition-opacity no-scrollbar overflow-hidden break-words line-clamp-[12]"
+      dangerouslySetInnerHTML={{ __html: p.content }}
+    />
+  </motion.div>
+));
 
 // ─── ANA COMPONENT ────────────────────────────────────────────────────────────
 export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, addPost, deletePost, deleteTag, publishPost, updatePostTags, archivePostsByTag }: CabinetProps) {
@@ -474,7 +542,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                         className={`
                           px-4 py-2 rounded-xl text-[9px] font-extrabold uppercase tracking-widest border whitespace-nowrap transition-all relative overflow-hidden h-full flex items-center gap-2
                           ${selectedTag === tag
-                            ? 'bg-text text-bg border-text shadow-md'
+                            ? 'bg-accent text-white border-accent shadow-md'
                             : 'bg-surface/50 text-muted border-border hover:border-accent hover:text-accent'}
                         `}
                       >
@@ -504,10 +572,10 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                       {/* Hover Tooltip for Quick Action */}
                       {(hasBucketAlert || hasMilestoneAlert) && (
                         <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover/tag:opacity-100 pointer-events-none transition-all z-50 whitespace-nowrap">
-                          <div className="bg-text text-bg text-[10px] p-2 rounded-lg shadow-xl font-bold uppercase tracking-widest">
+                          <div className="bg-accent text-white text-[10px] p-2 rounded-lg shadow-xl font-bold uppercase tracking-widest">
                             {hasMilestoneAlert ? '🏁 Milestone: Rehber Oluştur' : '📦 Stok Birikti!'}
                           </div>
-                          <div className="w-2 h-2 bg-text rotate-45 mx-auto -mt-1" />
+                          <div className="w-2 h-2 bg-accent rotate-45 mx-auto -mt-1" />
                         </div>
                       )}
                     </div>
@@ -550,7 +618,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                   </div>
                   <button
                     onClick={() => openStockWizard(selectedTag)}
-                    className="bg-accent text-text px-8 py-4 rounded-2xl font-bold uppercase tracking-widest text-[10px] hover:scale-105 transition-all shadow-xl flex items-center gap-2 group shrink-0"
+                    className="bg-accent text-white px-8 py-4 rounded-2xl font-bold uppercase tracking-widest text-[10px] hover:scale-105 transition-all shadow-xl flex items-center gap-2 group shrink-0"
                   >
                     {t('Sihirbazla Devam Et')} <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </button>
@@ -585,7 +653,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                   <div className="flex gap-2 flex-wrap justify-end">
                     <button
                       onClick={() => openStockWizard(selectedTag)}
-                      className="bg-accent text-text px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:scale-105 transition-all shadow-sm flex items-center gap-2"
+                      className="bg-accent text-white px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:scale-105 transition-all shadow-sm flex items-center gap-2"
                     >
                       {t('Sihirbazı Başlat')}
                     </button>
@@ -618,9 +686,12 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
             className="space-y-6"
           >
             <div className="flex flex-wrap items-center justify-between gap-4">
-              <button onClick={() => setSelectedTag(null)} className="flex items-center gap-2 text-sm text-accent hover:underline font-bold uppercase tracking-widest shrink-0">
-                <ChevronLeft size={16} /> {t('Kabineye Dön')}
-              </button>
+                      <button
+                        onClick={() => setSelectedTag(null)}
+                        className="flex items-center gap-2 text-sm text-accent hover:underline font-bold uppercase tracking-widest bg-accent/5 px-4 py-2 rounded-full ring-1 ring-accent/10 transition-all shrink-0"
+                      >
+                        <ChevronLeft size={16} /> {t('Kabineye Dön')}
+                      </button>
             </div>
             <h3 className="serif text-[22px] h-[39px] leading-[19px] not-italic text-text">
               {getTagIcon(selectedTag)} {selectedTag}
@@ -639,61 +710,18 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                 };
 
                 const renderPost = (p: Post) => (
-                  <motion.div
-                    layout
+                  <CabinetCard 
                     key={p.id}
-                    onClick={() => {
-                      const selection = window.getSelection();
-                      if (!selection || selection.toString().length === 0) {
-                        setSelectedPostId(p.id);
-                      }
-                    }}
-                    className={`cabinet-card relative glass-card border p-8 rounded-[40px] shadow-sm hover:shadow-lg transition-all duration-500 cursor-pointer group hover:-translate-y-1 ${selectedItemIds.includes(p.id) ? 'border-accent ring-2 ring-accent/20' : 'border-border'}`}
-                  >
-                    <div className="absolute top-6 left-6 z-10" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={selectedItemIds.includes(p.id)}
-                        onChange={() => toggleSelection(p.id)}
-                        className="w-5 h-5 rounded border-border text-accent focus:ring-accent cursor-pointer"
-                      />
-                    </div>
-                    <div className="flex justify-between items-center mb-6 pl-8 cabinet-card-actions">
-                      <span className="text-[10px] font-bold tracking-[0.3em] text-muted uppercase">{p.date}</span>
-                      <div className="flex items-center gap-3">
-                        {!p.isPublished ? (
-                          <span className="text-[9px] font-bold text-accent uppercase tracking-widest px-2 py-1 bg-accent/10 rounded-full border border-accent/20">{t('Taslak')}</span>
-                        ) : (
-                          <span className="text-[9px] font-bold text-success uppercase tracking-widest px-2 py-1 bg-success/10 rounded-full border border-success/20">{t('Yayınlanmış')}</span>
-                        )}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); toggleStar(p.id); }}
-                          className="hover:scale-110 transition-transform p-1"
-                          title="Yıldızla"
-                        >
-                          <Star size={18} className={stars.includes(p.id) ? "fill-[#FFD166] text-[#FFD166]" : "text-muted hover:text-[#FFD166]"} />
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setMoveTargetPostId(p.id); }}
-                          className="text-muted hover:text-[#4A72FF] hover:scale-110 transition-all p-1"
-                          title="Kategoriyi Değiştir"
-                        >
-                          <Tag size={18} />
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); deleteSingle(p.id); }}
-                          className="text-muted hover:text-danger hover:scale-110 transition-all p-1"
-                          title="Fikri Sil"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </div>
-                    <div
-                      className="timeline-content text-lg md:text-xl leading-relaxed text-text serif italic opacity-90 group-hover:opacity-100 transition-opacity no-scrollbar overflow-hidden break-words line-clamp-[12]"
-                      dangerouslySetInnerHTML={{ __html: p.content }}
-                    />
-                  </motion.div>
+                    p={p}
+                    selectedItemIds={selectedItemIds}
+                    toggleSelection={toggleSelection}
+                    toggleStar={toggleStar}
+                    setMoveTargetPostId={setMoveTargetPostId}
+                    deleteSingle={deleteSingle}
+                    stars={stars}
+                    t={t}
+                    setSelectedPostId={setSelectedPostId}
+                  />
                 );
 
                 return (
@@ -1164,11 +1192,11 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
       <AnimatePresence>
         {stockWizard && (
           <>
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => stockWizard.step === 5 ? setStockWizard(null) : undefined}
-              className="fixed inset-0 bg-text/40 backdrop-blur-xl z-[100]"
-            />
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={() => stockWizard.step === 5 ? setStockWizard(null) : undefined}
+                className="fixed inset-0 bg-black/20 backdrop-blur-xl z-[100]"
+              />
             <motion.div
               id="stockDrawer"
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
@@ -1236,23 +1264,23 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                       })}
                     </div>
 
-                    <button
-                      disabled={stockWizard.selectedPostIds.length < 2}
-                      onClick={() => {
-                        const keywords = findCommonWords(stockWizard.selectedPostIds);
-                        setStockWizard({ 
-                          ...stockWizard, 
-                          step: 1, 
-                          approvedKeywords: keywords.slice(0, 4),
-                          suggestedTemplate: suggestTemplate(keywords)
-                        });
-                      }}
-                      className={`w-full py-5 rounded-[24px] font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all shadow-xl ${
-                        stockWizard.selectedPostIds.length >= 2 
-                          ? 'bg-text text-bg hover:scale-[0.98]' 
-                          : 'bg-surface text-muted cursor-not-allowed opacity-50'
-                      }`}
-                    >
+                      <button
+                        disabled={stockWizard.selectedPostIds.length < 2}
+                        onClick={() => {
+                          const keywords = findCommonWords(stockWizard.selectedPostIds);
+                          setStockWizard({ 
+                            ...stockWizard, 
+                            step: 1, 
+                            approvedKeywords: keywords.slice(0, 4),
+                            suggestedTemplate: suggestTemplate(keywords)
+                          });
+                        }}
+                        className={`w-full py-5 rounded-[24px] font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all shadow-xl ${
+                          stockWizard.selectedPostIds.length >= 2 
+                            ? 'bg-accent text-white hover:scale-[0.98]' 
+                            : 'bg-surface text-muted cursor-not-allowed opacity-50'
+                        }`}
+                      >
                       {stockWizard.selectedPostIds.length < 2 ? 'En az 2 fikir seç' : `${stockWizard.selectedPostIds.length} Fikri Birleştir →`}
                     </button>
                   </div>
@@ -1313,7 +1341,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                       <div className="flex flex-col gap-2">
                         <button
                           onClick={() => setStockWizard(prev => prev ? { ...prev, step: 2 } : null)}
-                          className="w-full py-5 bg-text text-bg rounded-[24px] font-bold uppercase tracking-widest text-xs shadow-xl hover:scale-[0.98] transition-all"
+                          className="w-full py-5 bg-accent text-white rounded-[24px] font-bold uppercase tracking-widest text-xs shadow-xl hover:scale-[0.98] transition-all"
                         >
                           {t('Onayladıklarımla Devam Et →')}
                         </button>
@@ -1371,7 +1399,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                             const fieldCount = TEMPLATE_DEFS[stockWizard.suggestedTemplate].context.fields.length;
                             setStockWizard(prev => prev ? { ...prev, step: 3, answers: Array(fieldCount).fill('') } : null);
                           }}
-                          className="w-full py-5 bg-text text-bg rounded-[24px] font-bold uppercase tracking-widest text-xs shadow-xl"
+                          className="w-full py-5 bg-accent text-white rounded-[24px] font-bold uppercase tracking-widest text-xs shadow-xl"
                         >
                           {t('Seçili Şablonla Yazmaya Başla →')}
                         </button>
@@ -1464,7 +1492,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                       <div className="flex flex-col gap-2">
                         <button
                           onClick={() => setStockWizard(prev => prev ? { ...prev, step: 4 } : null)}
-                          className="w-full py-5 bg-text text-bg rounded-[24px] font-bold uppercase tracking-widest text-xs shadow-xl"
+                          className="w-full py-5 bg-accent text-white rounded-[24px] font-bold uppercase tracking-widest text-xs shadow-xl"
                         >
                           {t('Önizleme ve Yayınla →')}
                         </button>

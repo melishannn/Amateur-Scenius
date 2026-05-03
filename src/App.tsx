@@ -379,6 +379,12 @@ export default function App() {
       </main>
       
       <div className="md:hidden fixed top-0 w-full glass border-b border-white/40 p-3 flex justify-between items-center z-40 h-16 shadow-sm">
+        <button 
+          onClick={() => setIsMobileMenuOpen(true)}
+          className="p-2 text-[#7a6090] hover:bg-white/40 rounded-xl transition-colors"
+        >
+          <Menu size={24} />
+        </button>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#cdb4db] to-[#a2d2ff] flex items-center justify-center text-white font-bold text-sm shadow-md">
@@ -387,12 +393,6 @@ export default function App() {
             <div className="serif text-[1rem] text-[#1a0f2e] font-bold leading-tight cursor-pointer" onClick={() => { setActiveTab('flow'); setIsMobileMenuOpen(false); }}>Amateur Scenius</div>
           </div>
         </div>
-        <button 
-          onClick={() => setIsMobileMenuOpen(true)}
-          className="p-2 text-[#7a6090] hover:bg-white/40 rounded-xl transition-colors"
-        >
-          <Menu size={24} />
-        </button>
       </div>
 
       <AnimatePresence>
@@ -406,13 +406,13 @@ export default function App() {
               className="md:hidden fixed inset-0 z-[100] bg-white/20 backdrop-blur-xl"
             />
             <motion.div
-              initial={{ x: '100%' }}
+              initial={{ x: '-100%' }}
               animate={{ x: 0 }}
-              exit={{ x: '100%' }}
+              exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="md:hidden fixed top-0 right-0 h-full w-4/5 max-w-sm glass border-l border-white/40 shadow-2xl z-[101] flex flex-col"
+              className="md:hidden fixed top-0 left-0 h-full w-4/5 max-w-sm glass border-r border-white/40 shadow-2xl z-[101] flex flex-col"
             >
-              <div className="flex justify-end p-4 border-b border-white/30">
+              <div className="flex justify-start p-4 border-b border-white/30">
                 <button 
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="p-2 bg-white/50 text-[#7a6090] rounded-xl hover:bg-white shadow-sm transition-all"
