@@ -205,6 +205,9 @@
    ============================================ */
 
 @layer base {
+  html {
+    -webkit-overflow-scrolling: touch;
+  }
   body {
     @apply bg-bg text-text font-sans antialiased tracking-wide;
     background: linear-gradient(135deg, #f8f6ff 0%, #faf8ff 25%, #f5f0ff 75%, #f8f6ff 100%);
@@ -315,9 +318,33 @@
   }
 }
 
+body.modal-open {
+  overflow: hidden;
+}
+
+body.modal-open .bottom-nav-mobile {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 150%) !important;
+}
+
 /* ============================================
    SELECTION & SCROLLBAR
    ============================================ */
+
+.scroll-container {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.card-feed {
+  scroll-snap-type: y mandatory;
+  overflow-y: scroll;
+}
+
+.card-feed > .card {
+  scroll-snap-align: start;
+}
 
 ::selection {
   background: rgba(124, 92, 255, 0.2);

@@ -4,9 +4,12 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Post } from '../types';
 import { Sparkles, Trash2, CheckCircle2, ChevronRight, Share2, ImageIcon, Mic, Quote, Wand2, Type, Music, Info, X, FileText, Layout, Palette, Clock, Tag, Send, ChevronLeft } from 'lucide-react';
 import { InfoModal } from './ui/InfoModal';
+import { MessageAlertDialog } from './ui/MessageAlertDialog';
 import { GoogleGenAI } from "@google/genai";
 
-const genAI = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || (process.env.GEMINI_API_KEY as string) });
+// API call configuration is now handled via the backend Server endpoint optionally.
+// For client side API preview without a backend:
+const genAI = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || "API_KEY_PLACEHOLDER" });
 
 interface WizardProps {
   addPost: (post: Post) => void;
@@ -269,6 +272,8 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
     };
   }, []);
 
+  const [alertMessage, setAlertMessage] = useState<{title: string, desc: string, icon?: 'archive' | 'check'} | null>(null);
+
   const [formData, setFormData] = useState({
     idea: hemingwayChain || '',
     tags: '',
@@ -305,6 +310,33 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
     media: [] as { type: 'image' | 'audio' | 'text'; url: string; name?: string; content?: string }[]
   });
 
+  useEffect(() => {
+    const handleForceReset = () => {
+      if (formData.idea.trim() && step < 7) {
+        addPost({
+          id: Date.now(),
+          content: formData.rehberType ? generateFinalStory() : (formData.idea + (formData.doc ? `<br><br>${formData.doc}` : '')),
+          tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(Boolean) : ['#genel'],
+          isPublished: false,
+          media: formData.media,
+          date: new Date().toLocaleDateString('tr-TR'),
+          isAmateur: formData.isAmateur,
+          isTeaching: formData.isTeaching,
+          rehberType: formData.rehberType,
+          originalIdea: formData.idea,
+          originalDoc: formData.doc
+        });
+        setAlertMessage({ title: 'Taslak Kaydedildi', desc: t('wizard.draft_stored') || 'Fikir defterindeki yazınız taslak olarak kaydedildi.', icon: 'archive' });
+      }
+      reset();
+    };
+
+    window.addEventListener('force-wizard-reset', handleForceReset);
+    return () => {
+      window.removeEventListener('force-wizard-reset', handleForceReset);
+    };
+  }, [formData, step]);
+
   const reset = () => {
     setFormData({
       idea: '', tags: '', doc: '', isAmateur: false, isTeaching: false,
@@ -323,12 +355,14 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
   // ─── AI FONKSİYONLARI ──────────────────────────────────────────────────────
   const fetchGemini = useCallback(async (modelName: string, contents: any, config?: any) => {
     try {
-      const response = await genAI.models.generateContent({
-        model: "gemini-1.5-flash", // Use standard stable model for better free tier accessibility
-        contents: contents,
-        config: config
+      const response = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: "gemini-1.5-flash", contents, config })
       });
-      return { text: response.text || "" };
+      if (!response.ok) throw new Error(await response.text());
+      const data = await response.json();
+      return { text: data.text || "" };
     } catch (error: any) {
       if (error.message?.includes('429') || error.message?.includes('RESOURCE_EXHAUSTED')) {
         alert("Günlük ücretsiz AI kullanım limitine ulaşıldı. Lütfen biraz bekleyip tekrar deneyin veya AI Studio ayarlarınızı kontrol edin.");
@@ -340,18 +374,26 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
 
   const fetchGeminiStream = useCallback(async (modelName: string, contents: any, onChunk: (text: string) => void, config?: any) => {
     try {
-      const response = await genAI.models.generateContentStream({
-        model: "gemini-1.5-flash", // Use standard stable model
-        contents: contents,
-        config: config
+      const response = await fetch('/api/gemini-stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: "gemini-1.5-flash", contents, config })
       });
-
+      if (!response.ok) throw new Error(await response.text());
+      
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder("utf-8");
       let fullText = "";
-      for await (const chunk of response) {
-        const text = chunk.text;
-        if (text) {
-          fullText += text;
-          onChunk(fullText);
+      
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const text = decoder.decode(value, { stream: true });
+          if (text) {
+             fullText += text;
+             onChunk(fullText);
+          }
         }
       }
       return { text: fullText };
@@ -362,7 +404,7 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
       console.error("Gemini Streaming Error:", error);
       return { text: "" };
     }
-  }, []);
+  }, [t]);
 
   const handleSuggestTags = useCallback(async () => {
     if (!formData.idea) return;
@@ -444,7 +486,7 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
       );
     } catch (e) { 
       console.error(e); 
-      alert('AI hatası.'); 
+      alert(t('wizard.alert_ai_error')); 
     } finally { 
       setIsAiLoading(false); 
     }
@@ -493,7 +535,7 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
       originalIdea: formData.idea,
       originalDoc: formData.doc
     });
-    alert(msg);
+    setAlertMessage({ title: 'Taslak Kaydedildi', desc: msg, icon: 'archive' });
     reset();
   };
 
@@ -545,7 +587,7 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
       return c;
     }
 
-    const prefix = formData.isTeaching ? 'Yeni öğrendiğim bir şey: ' : 'Sürecimde şunları yaşadım: ';
+    const prefix = formData.isTeaching ? t('wizard.teaching_prefix') : t('wizard.documenting_prefix');
     const tone = formData.isAmateur ? `<div class="text-xs text-muted italic mb-4">${t('Uzman değilim, deneme yanılma yapıyorum.')}</div>` : '';
     const storyText = overrideStory !== undefined ? overrideStory : (formData.q1 || 'Bugün yeni bir şey denedim.');
     let attr = '';
@@ -725,11 +767,21 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
           const i = document.createElement('input'); i.type = 'file'; i.accept = 'audio/*';
           i.onchange = (e: any) => handleFileUpload(e, 'audio'); i.click();
         }} className="flex flex-col items-center justify-center w-24 h-24 bg-surface border-2 border-dashed border-border rounded-[24px] hover:border-accent transition-all group">
-          <Mic size={24} className="text-muted group-hover:text-accent" />
+          <Music size={24} className="text-muted group-hover:text-accent" />
           <span className="text-[10px] font-bold mt-2 opacity-60">{t('wizard.media_audio')}</span>
         </button>
+        <div className="flex flex-col items-center justify-center w-24 h-24 bg-accent/5 border-2 border-accent/20 rounded-[24px] hover:border-accent transition-all group relative">
+          <button 
+            onClick={isRecording ? stopVoiceRecord : startVoiceRecord}
+            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isRecording ? 'bg-danger text-white animate-pulse' : 'bg-accent text-white shadow-lg'}`}
+          >
+            {isRecording ? <div className="w-4 h-4 bg-white rounded-sm" /> : <Mic size={20} />}
+          </button>
+          <span className="text-[10px] font-bold mt-2 text-accent">{isRecording ? t('wizard.stop') : t('wizard.voice_rec')}</span>
+          {!isRecording && <div className="absolute -top-1 -right-1 w-4 h-4 bg-accent text-[8px] text-white flex items-center justify-center rounded-full animate-bounce">!</div>}
+        </div>
         <button onClick={() => {
-          const name = prompt('Belge adı?');
+          const name = prompt(t('wizard.prompt_doc_name'));
           if (name) setFormData(prev => ({ ...prev, media: [...prev.media, { type: 'text', url: '', name }] }));
         }} className="flex flex-col items-center justify-center w-24 h-24 bg-surface border-2 border-dashed border-border rounded-[24px] hover:border-accent transition-all group">
           <Type size={24} className="text-muted group-hover:text-accent" />
@@ -790,7 +842,7 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
       <div className="flex flex-col gap-4 pt-6">
         <button onClick={nextStep} className="w-full bg-accent text-text py-4 rounded-full font-bold text-sm shadow-lg">{t('wizard.spark_continue')}</button>
         <button onClick={() => toCabinet(t('wizard.draft_stored'))} className="w-full bg-surface border border-border text-muted py-4 rounded-full text-sm font-semibold">{t('wizard.not_sure_btn')}</button>
-        <button onClick={() => { if (confirm(t('wizard.delete_confirm'))) { reset(); alert(t('wizard.deleted_msg')); } }} className="w-full border border-danger/30 text-danger py-3 rounded-full text-sm font-semibold flex items-center justify-center gap-2 hover:bg-danger-soft transition-colors">
+        <button onClick={() => { if (confirm(t('wizard.delete_confirm'))) { reset(); setAlertMessage({ title: 'Silindi', desc: t('wizard.deleted_msg'), icon: 'archive' }); } }} className="w-full border border-danger/30 text-danger py-3 rounded-full text-sm font-semibold flex items-center justify-center gap-2 hover:bg-danger-soft transition-colors">
           <Trash2 size={16} /> {t('wizard.noise_delete')}
         </button>
       </div>
@@ -987,8 +1039,8 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
     // STEP 5: Hikaye Önizleme / Düzenleme
     <div key="s5" id="polished-story-preview" className="space-y-8">
       <div className="text-center space-y-2">
-        <h2 className="serif text-4xl italic text-text" id="story-preview-header">{formData.rehberType ? 'Rehber Önizleme' : 'Harmanlanan Hikaye'}</h2>
-        <p className="text-[10px] font-bold text-muted uppercase tracking-[0.2em]">{formData.rehberType ? 'Son Kontrol & Yayına Hazırlık' : 'Düzenle, Süste ve Yayınla'}</p>
+        <h2 className="serif text-4xl italic text-text" id="story-preview-header">{formData.rehberType ? t('wizard.guide_preview') : t('wizard.blended_story')}</h2>
+        <p className="text-[10px] font-bold text-muted uppercase tracking-[0.2em]">{formData.rehberType ? t('wizard.final_check') : t('wizard.edit_decorate')}</p>
       </div>
 
       {formData.rehberType ? (
@@ -1013,10 +1065,10 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
         <div className="space-y-4 pt-6 text-center">
           <label className="text-[10px] font-bold tracking-widest text-muted uppercase block">{t('Yayın Platformu')}</label>
           <select value={formData.platform} onChange={e => set('platform', e.target.value)} className="w-full p-4 bg-surface border border-border rounded-full text-sm text-center appearance-none shadow-sm font-semibold">
-            <option>{t('Kendi Web Sitem — Karargah')}</option>
-            <option>{t('X (Twitter) — Uydu')}</option>
-            <option>{t('LinkedIn — Profesyonel Uydu')}</option>
-            <option>{t('Substack — Bülten Köşesi')}</option>
+            <option>{t('wizard.platform_website')}</option>
+            <option>{t('wizard.platform_x')}</option>
+            <option>{t('wizard.platform_linkedin')}</option>
+            <option>{t('wizard.platform_substack')}</option>
           </select>
         </div>
       )}
@@ -1134,6 +1186,15 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
           <Trash2 size={16} />
         </button>
       </div>
+
+      <MessageAlertDialog
+        open={!!alertMessage}
+        onOpenChange={(open) => !open && setAlertMessage(null)}
+        title={alertMessage?.title || ''}
+        description={alertMessage?.desc || ''}
+        icon={alertMessage?.icon || 'archive'}
+        onConfirm={() => setAlertMessage(null)}
+      />
 
       <InfoModal
         isOpen={isInfoModalOpen}

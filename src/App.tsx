@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import logo from './assets/logo.png';
+import { useState, useEffect, useRef } from 'react';
 import Navigation from './components/Navigation';
 import Wizard from './components/Wizard';
 import Cabinet from './components/Cabinet';
 import Hub from './components/Hub';
 import Profile from './components/Profile';
-import AuthGate from './components/AuthGate';
 import { AppTour } from './components/AppTour';
 import { Brain, LogOut, User, LayoutDashboard, Archive, Radio, Database, Menu, X } from 'lucide-react';
 import { Post, AppState } from './types';
@@ -13,9 +13,7 @@ import { useLanguage } from './contexts/LanguageContext';
 
 export default function App() {
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState('flow');
-  const [user, setUser] = useState<{name: string, email: string, uid: string} | null>(null);
-  const [skippedAuth, setSkippedAuth] = useState(false);
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('scenius_activeTab') || 'flow');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isLofiPlaying, setIsLofiPlaying] = useState(false);
@@ -33,8 +31,46 @@ export default function App() {
       localStorage.setItem('scenius_chain', '');
     }
     
+    let initialPosts: any[] = [];
+    if (postsSaved) {
+      initialPosts = JSON.parse(postsSaved);
+    }
+    
+    // Yalnızca hiç post yoksa başlangıç postlarını yükle, ki kılavuz için "stok" örneği olsun
+    if (initialPosts.length === 0) {
+      initialPosts = [
+        {
+          id: Date.now() - 3000,
+          content: "Amatör olmanın en büyük avantajı, hata yapma özgürlüğüdür. Profesyonellerin aksine, bizim kaybedecek bir şanımız yok, bu da bizi daha cesur kılıyor.",
+          tags: ["cesaret"],
+          createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+          isDraft: false,
+          isPublished: false,
+          isArchived: false,
+        },
+        {
+          id: Date.now() - 2000,
+          content: "Kusursuzluk bir öğrenme engelidir. Mükemmeli beklerken, aslında ilerleme fırsatını kaçırıyoruz. Hatalı da olsa üretmek, hiçbir şey yapmamaktan daha öğreticidir.",
+          tags: ["cesaret"],
+          createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
+          isDraft: false,
+          isPublished: false,
+          isArchived: false,
+        },
+        {
+          id: Date.now() - 1000,
+          content: "Eserini dünyayla paylaşmak korkutucu olabilir ama asıl korkutucu olan, seninle aynı şeyleri düşünen insanlarla asla bağ kuramamaktır. Fikirlerin, henüz tanışmadığın dostlarına birer davetiyedir.",
+          tags: ["cesaret"],
+          createdAt: new Date(Date.now() - 3600000).toISOString(),
+          isDraft: false,
+          isPublished: false,
+          isArchived: false,
+        }
+      ];
+    }
+
     return {
-      posts: postsSaved ? JSON.parse(postsSaved) : [],
+      posts: initialPosts,
       chain: chainSaved || '',
       stars: starsSaved ? JSON.parse(starsSaved) : [],
       revisits: revisitsSaved ? JSON.parse(revisitsSaved) : {},
@@ -42,40 +78,25 @@ export default function App() {
   });
 
   useEffect(() => {
-    import('./firebase').then(({ auth }) => {
-      import('firebase/auth').then(({ onAuthStateChanged }) => {
-        onAuthStateChanged(auth, async (userRecord) => {
-          if (userRecord) {
-            setUser({ name: userRecord.displayName || t('app.default_user'), email: userRecord.email || '', uid: userRecord.uid });
-            const { loadStateFromFirebase } = await import('./firebaseSync');
-            const data = await loadStateFromFirebase(userRecord.uid);
-            if (data) {
-              setAppState(data);
-            }
-          } else {
-            setUser(null);
-          }
-        });
-      });
-    }).catch(console.error);
-  }, []);
+    localStorage.setItem('scenius_activeTab', activeTab);
+    if (mainRef.current) {
+      mainRef.current.scrollTop = 0;
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     localStorage.setItem('scenius_posts', JSON.stringify(appState.posts));
     localStorage.setItem('scenius_chain', appState.chain);
     localStorage.setItem('scenius_stars', JSON.stringify(appState.stars));
     localStorage.setItem('scenius_revisits', JSON.stringify(appState.revisits));
-    
-    const timer = setTimeout(() => {
-      if (user?.uid) {
-        import('./firebaseSync').then(({ saveStateToFirebase }) => {
-          saveStateToFirebase(user.uid, appState);
-        }).catch(console.error);
-      }
-    }, 3000); // Debounce for 3 seconds
+  }, [appState]);
 
-    return () => clearTimeout(timer);
-  }, [appState, user?.uid]);
+  const handleNavigation = (tab: string) => {
+    if (activeTab === 'flow' && tab === 'flow') {
+      window.dispatchEvent(new CustomEvent('force-wizard-reset'));
+    }
+    setActiveTab(tab);
+  };
 
   useEffect(() => {
     const handleRehber = () => setActiveTab('flow');
@@ -90,6 +111,10 @@ export default function App() {
       window.removeEventListener('continue-draft', handleContinue);
     };
   }, []);
+
+
+
+  const mainRef = useRef<HTMLElement>(null);
 
   const addPost = (post: Post) => {
     setAppState((prev) => ({
@@ -176,15 +201,13 @@ export default function App() {
   }, [activeTab]);
 
   useEffect(() => {
-    if (user || skippedAuth) {
-      const hasSeenTour = localStorage.getItem('scenius_tour_completed');
-      if (!hasSeenTour) {
-        setTourStepIndex(0);
-        setIsTourRunning(true);
-        localStorage.setItem('scenius_tour_completed', 'true');
-      }
+    const hasSeenTour = localStorage.getItem('scenius_tour_completed');
+    if (!hasSeenTour) {
+      setTourStepIndex(0);
+      setIsTourRunning(true);
+      localStorage.setItem('scenius_tour_completed', 'true');
     }
-  }, [user, skippedAuth]);
+  }, []);
 
   useEffect(() => {
     const handleNextTourStep = () => {
@@ -232,35 +255,6 @@ export default function App() {
     }));
   };
 
-  const login = async () => {
-    try {
-      const { loginWithGoogle } = await import('./firebase');
-      await loginWithGoogle();
-    } catch(e) { console.error(e); }
-  };
-
-  const logout = async () => {
-    try {
-      const { logout: doLogout } = await import('./firebase');
-      await doLogout();
-      setUser(null);
-    } catch(e) { console.error(e); }
-  };
-
-  if (!user && !skippedAuth) {
-    return (
-      <div className="flex flex-col h-[100dvh] bg-bg relative">
-        <motion.div 
-          animate={{ x: [0, 80, -40, 0], y: [0, 60, 100, 0], scale: [1, 1.1, 0.9, 1] }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          style={{ background: 'radial-gradient(circle, rgba(167, 139, 250, 0.15) 0%, transparent 70%)' }}
-          className="absolute w-[800px] h-[800px] md:w-[1200px] md:h-[1200px] top-[-20%] left-[-20%] z-0 pointer-events-none transform-gpu" 
-        />
-        <AuthGate onLogin={login} onSkip={() => setSkippedAuth(true)} />
-      </div>
-    );
-  }
-
   const tabs = [
     { id: 'flow', icon: LayoutDashboard },
     { id: 'cabinet', icon: Archive },
@@ -270,35 +264,17 @@ export default function App() {
 
   return (
     <div className="flex flex-col md:flex-row h-[100dvh] bg-bg overflow-hidden relative">
-      <motion.div 
-        animate={{
-          x: [0, 80, -40, 0],
-          y: [0, 60, 100, 0],
-          scale: [1, 1.1, 0.9, 1],
-        }}
-        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+      <div 
         style={{ background: 'radial-gradient(circle, rgba(167, 139, 250, 0.12) 0%, transparent 70%)' }}
-        className="absolute w-[800px] h-[800px] md:w-[1200px] md:h-[1200px] top-[-20%] left-[-20%] z-0 pointer-events-none transform-gpu" 
+        className="absolute w-[800px] h-[800px] md:w-[1200px] md:h-[1200px] top-[-20%] left-[-20%] z-0 pointer-events-none" 
       />
-      <motion.div 
-        animate={{
-          x: [0, -90, 40, 0],
-          y: [0, -70, -120, 0],
-          scale: [0.9, 1.2, 1, 0.9],
-        }}
-        transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+      <div 
         style={{ background: 'radial-gradient(circle, rgba(134, 217, 202, 0.1) 0%, transparent 70%)' }}
-        className="absolute w-[600px] h-[600px] md:w-[1000px] md:h-[1000px] bottom-[-15%] right-[-10%] z-0 pointer-events-none transform-gpu" 
+        className="absolute w-[600px] h-[600px] md:w-[1000px] md:h-[1000px] bottom-[-15%] right-[-10%] z-0 pointer-events-none" 
       />
-      <motion.div 
-        animate={{
-          x: [0, 50, -80, 0],
-          y: [0, -100, 60, 0],
-          scale: [1, 0.8, 1.1, 1],
-        }}
-        transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
+      <div 
         style={{ background: 'radial-gradient(circle, rgba(239, 130, 130, 0.08) 0%, transparent 70%)' }}
-        className="absolute w-[500px] h-[500px] md:w-[800px] md:h-[800px] top-[20%] left-[10%] z-0 pointer-events-none transform-gpu" 
+        className="absolute w-[500px] h-[500px] md:w-[800px] md:h-[800px] top-[20%] left-[10%] z-0 pointer-events-none" 
       />
 
       <AnimatePresence>
@@ -313,10 +289,7 @@ export default function App() {
             <div className="w-64 h-full">
               <Navigation 
                  activeTab={activeTab} 
-                 setActiveTab={setActiveTab} 
-                 user={user}
-                 login={login}
-                 logout={logout}
+                 setActiveTab={handleNavigation} 
                  onToggleLofi={() => setIsLofiPlaying(!isLofiPlaying)}
                  isLofiPlaying={isLofiPlaying}
                  onToggleSidebar={() => setIsSidebarOpen(false)}
@@ -336,7 +309,7 @@ export default function App() {
         </button>
       )}
 
-      <main className="flex-1 overflow-y-auto no-scrollbar relative z-10 pt-16 md:pt-0 pb-28 md:pb-0">
+      <main ref={mainRef} className="scroll-container flex-1 overflow-y-auto no-scrollbar relative z-10 pt-16 md:pt-0 pb-28 md:pb-0">
         <div className="w-full max-w-3xl mx-auto px-4 py-8 md:p-16">
           <div style={{ display: activeTab === 'flow' ? 'block' : 'none' }}>
             <Wizard 
@@ -346,35 +319,27 @@ export default function App() {
               saveHemingway={saveHemingway}
             />
           </div>
-          <AnimatePresence mode="wait">
-            {activeTab !== 'flow' && (
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-              >
-                {activeTab === 'cabinet' && (
-                  <Cabinet 
-                    posts={appState.posts} 
-                    stars={appState.stars}
-                    toggleStar={toggleStar}
-                    saveNote={saveRevisitNote}
-                    notes={appState.revisits}
-                    addPost={addPost}
-                    deletePost={deletePost}
-                    deleteTag={deleteTag}
-                    publishPost={publishPost}
-                    updatePostTags={updatePostTags}
-                    archivePostsByTag={archivePostsByTag}
-                  />
-                )}
-                {activeTab === 'hub' && <Hub posts={appState.posts} />}
-                {activeTab === 'profile' && <Profile user={user} login={login} logout={logout} />}
-              </motion.div>
+          <div style={{ display: activeTab !== 'flow' ? 'block' : 'none' }}>
+            {activeTab === 'cabinet' && (
+              <Cabinet 
+                posts={appState.posts} 
+                stars={appState.stars}
+                toggleStar={toggleStar}
+                saveNote={saveRevisitNote}
+                notes={appState.revisits}
+                addPost={addPost}
+                deletePost={deletePost}
+                deleteTag={deleteTag}
+                publishPost={publishPost}
+                updatePostTags={updatePostTags}
+                archivePostsByTag={archivePostsByTag}
+                scrollRef={mainRef}
+                isLoading={false}
+              />
             )}
-          </AnimatePresence>
+            {activeTab === 'hub' && <Hub posts={appState.posts} scrollRef={mainRef} />}
+            {activeTab === 'profile' && <Profile />}
+          </div>
         </div>
       </main>
       
@@ -386,60 +351,64 @@ export default function App() {
           <Menu size={24} />
         </button>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#cdb4db] to-[#a2d2ff] flex items-center justify-center text-white font-bold text-sm shadow-md">
-              ✦
+          <div className="flex items-center gap-2" onClick={() => { handleNavigation('flow'); setIsMobileMenuOpen(false); }}>
+            <div className="w-10 h-10 rounded-xl overflow-hidden bg-white/30 flex items-center justify-center shadow-lg border border-white/40">
+              <img src={logo} alt="Logo" className="w-[85%] h-[85%] object-contain" referrerPolicy="no-referrer" />
             </div>
-            <div className="serif text-[1rem] text-[#1a0f2e] font-bold leading-tight cursor-pointer" onClick={() => { setActiveTab('flow'); setIsMobileMenuOpen(false); }}>Amateur Scenius</div>
+            <div className="flex flex-col">
+              <span className="serif text-[1.05rem] text-[#1a0f2e] font-bold leading-none">Amateur Scenius</span>
+              <span className="text-[9px] font-mono text-[#7a6090] tracking-widest uppercase opacity-60">Scenius Labs</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {isMobileMenuOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="md:hidden fixed inset-0 z-[100] bg-white/20 backdrop-blur-xl"
-            />
-            <motion.div
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="md:hidden fixed top-0 left-0 h-full w-4/5 max-w-sm glass border-r border-white/40 shadow-2xl z-[101] flex flex-col"
-            >
-              <div className="flex justify-start p-4 border-b border-white/30">
-                <button 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-2 bg-white/50 text-[#7a6090] rounded-xl hover:bg-white shadow-sm transition-all"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto">
-                <Navigation 
-                  activeTab={activeTab} 
-                  setActiveTab={(tab) => {
-                    setActiveTab(tab);
-                    setIsMobileMenuOpen(false);
-                  }} 
-                  user={user}
-                  login={login}
-                  logout={logout}
-                  onToggleLofi={() => setIsLofiPlaying(!isLofiPlaying)}
-                  isLofiPlaying={isLofiPlaying}
-                />
-              </div>
-            </motion.div>
-          </>
+          <motion.div
+            key="mobile-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="md:hidden fixed inset-0 z-[100] bg-white/20 backdrop-blur-xl"
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence mode="wait">
+        {isMobileMenuOpen && (
+          <motion.div
+            key="mobile-menu"
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="md:hidden fixed top-0 left-0 h-full w-4/5 max-w-sm glass border-r border-white/40 shadow-2xl z-[101] flex flex-col"
+          >
+            <div className="flex justify-start p-4 border-b border-white/30">
+              <button 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2 bg-white/50 text-[#7a6090] rounded-xl hover:bg-white shadow-sm transition-all"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <Navigation 
+                activeTab={activeTab} 
+                setActiveTab={(tab) => {
+                  handleNavigation(tab);
+                  setIsMobileMenuOpen(false);
+                }} 
+                onToggleLofi={() => setIsLofiPlaying(!isLofiPlaying)}
+                isLofiPlaying={isLofiPlaying}
+              />
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
       
-      <div className="md:hidden fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-30">
+      <div className="bottom-nav-mobile md:hidden fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-30 transition-all duration-300">
         <div className="bg-white/40 border border-white/40 p-2 rounded-[32px] flex items-center gap-2 shadow-xl shadow-[#cdb4db]/20 backdrop-blur-md">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -447,7 +416,7 @@ export default function App() {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleNavigation(tab.id)}
                 className={`
                   relative flex items-center justify-center w-[52px] h-[52px] rounded-full transition-all duration-500
                   ${isActive ? 'bg-white shadow-md' : 'text-[#6b5ca5]/60 hover:bg-white/40'}

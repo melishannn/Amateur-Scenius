@@ -1,5 +1,4 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenAI } from "@google/genai";
@@ -40,8 +39,36 @@ async function startServer() {
     }
   });
 
+  app.post("/api/gemini-stream", async (req, res) => {
+    try {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) return res.status(500).json({ error: "Gemini API anahtarı bulunamadı." });
+      
+      const ai = new GoogleGenAI({ apiKey });
+      const { model, contents, config } = req.body;
+      
+      const responseStream = await ai.models.generateContentStream({
+        model: model || 'gemini-1.5-flash',
+        contents,
+        config
+      });
+      
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('Transfer-Encoding', 'chunked');
+      
+      for await (const chunk of responseStream) {
+        res.write(chunk.text || "");
+      }
+      res.end();
+    } catch (error) {
+      console.error(error);
+      res.end(); // If headers sent, we just end the stream
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",

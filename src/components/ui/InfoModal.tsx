@@ -14,17 +14,23 @@ export function InfoModal({ isOpen, onClose, title, content }: InfoModalProps) {
   const { t } = useLanguage();
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
+    <>
+      <AnimatePresence mode="wait">
+        {isOpen && (
           <motion.div
+            key="infomodal-backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
             className="fixed inset-0 bg-text/40 backdrop-blur-md z-[200]"
           />
+        )}
+      </AnimatePresence>
+      <AnimatePresence mode="wait">
+        {isOpen && (
           <motion.div
+            key="infomodal-content"
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -58,8 +64,8 @@ export function InfoModal({ isOpen, onClose, title, content }: InfoModalProps) {
               </button>
             </div>
           </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

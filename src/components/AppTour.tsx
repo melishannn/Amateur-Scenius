@@ -32,6 +32,23 @@ interface AppTourProps {
 // ─── TUR ADIMLARI ────────────────────────────────────────────────────────────
 const buildSteps = (t: (key: string) => string): TourStep[] => [
   {
+    target: 'body',
+    title: t('tour.step0.title'),
+    tab: 'flow',
+    wizardStep: 0,
+    waitMs: 100,
+    content: (
+      <div className="space-y-4 max-w-sm">
+        <div className="border-l-4 border-accent pl-3 py-1">
+          <h4 className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">{t('tour.step0.phil')}</h4>
+          <p className="text-sm italic">{t('tour.step0.quote')}</p>
+        </div>
+        <p className="text-sm leading-relaxed">{t('tour.step0.desc')}</p>
+      </div>
+    ),
+    placement: 'bottom',
+  },
+  {
     target: '#idea',
     title: t('tour.step1.title'),
     tab: 'flow',
@@ -566,6 +583,23 @@ export function AppTour({
   // ─── HEDEF ELEMENTI BUL ───────────────────────────────────────────────────
   const findAndPositionTarget = useCallback((retryCount = 0) => {
     if (!currentStep || !run) return;
+    
+    if (currentStep.target === 'body') {
+      setTargetRect(null);
+      setTimeout(() => {
+        if (tooltipRef.current) {
+          const tooltipRect = tooltipRef.current.getBoundingClientRect();
+          setTooltipPos({
+             top: window.innerHeight / 2 - tooltipRect.height / 2,
+             left: window.innerWidth / 2 - tooltipRect.width / 2
+          });
+        }
+        setVisible(true);
+        setIsTransitioning(false);
+      }, 100);
+      return;
+    }
+
     const el = document.querySelector(currentStep.target);
     
     if (!el) {

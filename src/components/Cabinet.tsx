@@ -1,7 +1,9 @@
 import { useLanguage } from '../contexts/LanguageContext';
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, memo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Post } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { Star, ChevronLeft, ArrowRight, Trash2, Music, FileText, Plus, X, AlertTriangle, Tag, Info } from 'lucide-react';
 import { DeleteAlertDialog } from './ui/DeleteAlertDialog';
 import { MoveTagDialog } from './ui/MoveTagDialog';
@@ -19,6 +21,8 @@ interface CabinetProps {
   publishPost: (id: number) => void;
   updatePostTags: (id: number, newTags: string[]) => void;
   archivePostsByTag: (tag: string) => void;
+  scrollRef: React.RefObject<HTMLElement | null>;
+  isLoading?: boolean;
 }
 
 // ─── ŞABLON TANIM ──────────────────
@@ -177,9 +181,26 @@ const CabinetCard = memo(({ p, selectedItemIds, toggleSelection, toggleStar, set
   </motion.div>
 ));
 
+function VirtualTagTimeline({ sortedPosts, renderPost }: { sortedPosts: Post[], renderPost: (p: Post) => React.ReactNode }) {
+  return (
+    <div className="space-y-10">
+      {sortedPosts.map((p) => (
+        <div key={p.id} className="relative">
+          <div className={`absolute -left-[2.1rem] md:-left-[2.6rem] top-7 w-4 h-4 rounded-full border-2 z-10 transition-colors ${
+            p.isPublished
+              ? 'bg-success border-success shadow-[0_0_12px_rgba(34,197,94,0.6)]'
+              : 'bg-bg border-accent'
+          }`} />
+          {renderPost(p)}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── ANA COMPONENT ────────────────────────────────────────────────────────────
-export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, addPost, deletePost, deleteTag, publishPost, updatePostTags, archivePostsByTag }: CabinetProps) {
-  const { t } = useLanguage();
+export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, addPost, deletePost, deleteTag, publishPost, updatePostTags, archivePostsByTag, scrollRef, isLoading }: CabinetProps) {
+  const { t, lang } = useLanguage();
 
   useEffect(() => {
     const handleSetStockStep = (e: any) => {
@@ -276,6 +297,17 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
     isFormReferenced?: boolean;
   } | null>(null);
 
+  useEffect(() => {
+    if (deleteTarget || moveTargetPostId || isInfoModalOpen || templateModal || stockWizard) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+    return () => {
+      document.body.classList.remove('modal-open');
+    };
+  }, [deleteTarget, moveTargetPostId, isInfoModalOpen, templateModal, stockWizard]);
+
   const stopWords = ['ve','ile','bu','bir','da','de','den','dan', 'için','ama','çok','ben','biz','şu','ne','ki','ya','mi', 'daha','olan','gibi','kadar','sonra','önce','her', 'vardı', 'yaptım', 'ettim', 'olan'];
   
   const findCommonWords = (postIds: number[]) => {
@@ -314,7 +346,9 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
   };
 
   const openStockWizard = (tag: string) => {
+    console.log('openStockWizard called with tag:', tag);
     const tagPosts = groups[tag] || [];
+    console.log('tagPosts length:', tagPosts.length);
     setStockWizard({
       tag,
       step: 0,
@@ -323,6 +357,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
       suggestedTemplate: 'technical',
       answers: []
     });
+    console.log('stockWizard state set');
   };
 
   const filteredPosts = posts.filter(p => {
@@ -366,8 +401,8 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
 
   const getAttributionStatus = (posts: Post[]) => {
     const latest = [...posts].reverse().find(p => p.attrName);
-    if (latest) return `atıf: ${latest.attrName}`;
-    return 'atıf yok';
+    if (latest) return `${t('cabinet.attribution')}: ${latest.attrName}`;
+    return t('cabinet.no_attribution');
   };
 
   const openTemplateModal = (tag: string, type: TemplateKey, count: number) => {
@@ -498,8 +533,19 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
         }
       />
 
-      {/* FİLTRE ÇUBUĞU */}
-      <div className="space-y-6 mb-10">
+      {isLoading && posts.length === 0 ? (
+        <div className="py-20 flex flex-col items-center justify-center space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-surface border border-border flex items-center justify-center relative overflow-hidden animate-pulse">
+            <div className="w-1/2 h-1/2 bg-accent rounded-full animate-bounce"></div>
+          </div>
+          <div className="text-[10px] font-bold text-muted tracking-[0.3em] uppercase">
+            {t('cabinet.loading')}
+          </div>
+        </div>
+      ) : (
+      <>
+        {/* FİLTRE ÇUBUĞU */}
+        <div className="space-y-6 mb-10">
         <div className="flex flex-wrap gap-3">
           {(['all', 'starred', 'draft', 'published'] as const).map((f) => (
             <button
@@ -512,10 +558,10 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                   : 'glass-card text-muted border-border hover:border-accent hover:text-accent shadow-sm'}
               `}
             >
-              {f === 'all' && 'Tümü'}
-              {f === 'starred' && '⭐ Yıldızlılar'}
-              {f === 'draft' && 'Taslaklar'}
-              {f === 'published' && 'Yayınlananlar'}
+              {f === 'all' && t('cabinet.all_ideas')}
+              {f === 'starred' && t('cabinet.starred')}
+              {f === 'draft' && t('cabinet.drafts')}
+              {f === 'published' && t('cabinet.published_tab')}
             </button>
           ))}
         </div>
@@ -535,8 +581,9 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                   const hasMilestoneAlert = tagPostsCount >= STOCK_TARGET;
 
                   return (
-                    <div key={tag} className="relative group/tag">
+                    <div key={tag} className="relative group/tag" id={`tag-container-${tag}`}>
                       <button
+                        id={`tag-${tag}`}
                         onClick={() => setSelectedTag(tag === selectedTag ? null : tag)}
                         className={`
                           px-4 py-2 rounded-xl text-[9px] font-extrabold uppercase tracking-widest border whitespace-nowrap transition-all relative overflow-hidden h-full flex items-center gap-2
@@ -749,25 +796,13 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                     </div>
 
                     {/* Timeline Görünümü */}
-                    <div className="relative pl-8 md:pl-12 py-4 space-y-10 before:absolute before:left-3 md:before:left-5 before:top-4 before:bottom-4 before:w-0.5 before:bg-gradient-to-b before:from-border before:via-border/50 before:to-transparent">
-                      <AnimatePresence>
-                        {tagPosts.length === 0 ? (
-                          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-muted text-[11px] italic serif p-4">{t('cabinet.no_ideas')}</motion.p>
-                        ) : (
-                          tagPosts.sort((a, b) => b.id - a.id).map(p => {
-                            return (
-                              <div key={p.id} className="relative">
-                                <div className={`absolute -left-[2.1rem] md:-left-[2.6rem] top-7 w-4 h-4 rounded-full border-2 z-10 transition-colors ${
-                                  p.isPublished
-                                    ? 'bg-success border-success shadow-[0_0_12px_rgba(34,197,94,0.6)]'
-                                    : 'bg-bg border-accent'
-                                }`} />
-                                {renderPost(p)}
-                              </div>
-                            );
-                          })
-                        )}
-                      </AnimatePresence>
+                    <div 
+                      className="relative pl-8 md:pl-12 py-4 space-y-10 before:absolute before:left-3 md:before:left-5 before:top-4 before:bottom-4 before:w-0.5 before:bg-gradient-to-b before:from-border before:via-border/50 before:to-transparent"
+                    >
+                      {(() => {
+                        const sortedPosts = [...tagPosts].sort((a, b) => b.id - a.id);
+                        return <VirtualTagTimeline sortedPosts={sortedPosts} renderPost={renderPost} />;
+                      })()}
                     </div>
                   </div>
                 );
@@ -839,6 +874,8 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
           </motion.div>
         )}
       </AnimatePresence>
+      </>
+      )}
 
       {/* DETAY PANELİ */}
       <AnimatePresence>
@@ -1010,17 +1047,16 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
       </AnimatePresence>
 
       {/* ŞABLON MODALI */}
-      <AnimatePresence>
-        {templateModal && (() => {
+        {templateModal && createPortal((() => {
           const def = TEMPLATE_DEFS[templateModal.type];
           const { step, answers, tag, type } = templateModal;
 
           return (
-            <>
+            <div className="fixed inset-0 z-[100] isolate">
               <motion.div
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 onClick={step !== 'done' ? closeModal : undefined}
-                className="fixed inset-0 bg-text/20 backdrop-blur-md z-[80]"
+                className="absolute inset-0 bg-text/20 backdrop-blur-md"
               />
 
               <motion.div
@@ -1029,25 +1065,33 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 30 }}
                 transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-                className="fixed bottom-0 left-0 right-0 md:top-1/2 md:-translate-y-1/2 md:left-1/2 md:-translate-x-1/2 md:bottom-auto md:w-[580px] glass rounded-t-[40px] md:rounded-[40px] z-[90] shadow-2xl overflow-hidden max-h-[92vh] flex flex-col"
+                className="absolute bottom-0 left-0 right-0 md:top-1/2 md:-translate-y-1/2 md:left-1/2 md:-translate-x-1/2 md:w-[580px] md:h-auto glass rounded-t-[40px] md:rounded-[40px] shadow-2xl overflow-hidden max-h-[92vh] flex flex-col pointer-events-auto"
               >
                 <div className="flex items-start justify-between p-6 pb-5 shrink-0"
                   style={{ background: def.colorSoft, borderBottom: `1px solid ${def.colorBorder}` }}>
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-[16px] flex items-center justify-center text-2xl shadow-md shrink-0"
+                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-[16px] flex items-center justify-center text-2xl shadow-md shrink-0"
                       style={{ background: def.color }}>{def.icon}</div>
-                    <div>
+                    <div className="pr-4 md:pr-12">
                       <div className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-50 mb-0.5" style={{ color: def.color }}>
                         {tag} · {templateModal.count} {t('cabinet.template_modal_artifact')}
                       </div>
-                      <h3 className="text-base font-bold text-text leading-tight">{t(def.labelKey)}</h3>
+                      <h3 className="text-sm md:text-base font-bold text-text leading-tight w-full max-w-full line-clamp-2 md:line-clamp-none">{t(def.labelKey)}</h3>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    {(['context', 'form', 'preview'] as const).map((s, i) => (
-                      <div key={s} className="w-2 h-2 rounded-full transition-all"
-                        style={{ background: ['context', 'form', 'preview'].indexOf(step) >= i ? def.color : def.colorBorder }} />
-                    ))}
+                  <div className="flex flex-col items-end gap-2 shrink-0 relative z-10">
+                    <button 
+                      onClick={closeModal}
+                      className="w-8 h-8 rounded-full bg-white/80 shadow-md flex items-center justify-center text-[#7a6090] hover:bg-white hover:scale-105 transition-all"
+                    >
+                      <X size={16} />
+                    </button>
+                    <div className="flex items-center gap-1.5 mt-2 md:hidden">
+                      {(['context', 'form', 'preview'] as const).map((s, i) => (
+                        <div key={s} className="w-1.5 h-1.5 rounded-full transition-all"
+                          style={{ background: ['context', 'form', 'preview'].indexOf(step) >= i ? def.color : def.colorBorder }} />
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -1177,24 +1221,23 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
 
                 </div>
               </motion.div>
-            </>
+            </div>
           );
-        })()}
-      </AnimatePresence>
+        })(), document.body)}
       {/* STOCK BİRİKTİ SİHİRBAZI (YENİ AKIŞ) */}
       <AnimatePresence>
-        {stockWizard && (
-          <>
+        {stockWizard && createPortal((
+          <div className="fixed inset-0 z-[120] isolate pointer-events-none">
               <motion.div
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 onClick={() => stockWizard.step === 5 ? setStockWizard(null) : undefined}
-                className="fixed inset-0 bg-black/20 backdrop-blur-xl z-[100]"
+                className="absolute inset-0 bg-black/20 backdrop-blur-xl pointer-events-auto"
               />
             <motion.div
               id="stockDrawer"
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed inset-y-0 right-0 w-full md:w-[600px] bg-bg shadow-2xl z-[110] flex flex-col border-l border-border"
+              className="absolute inset-y-0 right-0 w-full md:w-[600px] bg-bg shadow-2xl flex flex-col border-l border-border pointer-events-auto"
             >
               <div className="p-6 border-b border-border flex items-center justify-between shrink-0 bg-surface">
                 <div className="flex items-center gap-3">
@@ -1567,8 +1610,8 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
 
               </div>
             </motion.div>
-          </>
-        )}
+          </div>
+        ), document.body)}
       </AnimatePresence>
     </div>
   );

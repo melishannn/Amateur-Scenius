@@ -1,12 +1,47 @@
 import { Post } from '../types';
 import { Music, Type } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { InfoModal } from './ui/InfoModal';
+import { useVirtualizer } from '@tanstack/react-virtual';
 
+function PublishedList({ publishedPosts, t }: { publishedPosts: Post[], t: any }) {
+  return (
+    <div className="space-y-4">
+      {publishedPosts.map((post) => (
+        <div key={post.id} className="glass-card border border-border p-8 rounded-[40px] shadow-sm hover:shadow-lg transition-all duration-500">
+          <div className="flex items-start justify-between mb-6">
+             <div className="space-y-1">
+                <div className="text-[9px] font-bold text-accent uppercase tracking-widest">{post.rehberType ? `🗺️ ${post.rehberType}` : t('hub.blended')}</div>
+                <div className="text-[10px] text-muted">{post.date} &bull; {post.platform || t('hub.hq')}</div>
+             </div>
+             <div className="flex gap-1 flex-wrap justify-end">
+                {post.tags?.map(tag => (
+                  <span key={tag} className="text-[9px] font-bold bg-bg px-2 py-1 rounded-md opacity-60 uppercase">{tag}</span>
+                ))}
+             </div>
+          </div>
+          
+          <div className="serif text-lg leading-relaxed text-text italic" dangerouslySetInnerHTML={{ __html: post.content }} />
+          
+          {post.media && post.media.length > 0 && (
+            <div className="flex gap-2 mt-6 overflow-x-auto no-scrollbar pb-2">
+              {post.media.map((m, i) => (
+                <div key={i} className="shrink-0 w-24 h-24 bg-bg rounded-2xl border border-border overflow-hidden">
+                  {m.type === 'image' && <img src={m.url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />}
+                  {m.type === 'audio' && <div className="w-full h-full flex items-center justify-center bg-accent-soft/20 text-accent"><Music size={16} /></div>}
+                  {m.type === 'text' && <div className="w-full h-full flex items-center justify-center bg-yellow-soft/20 text-muted"><Type size={16} /></div>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 
-
-export default function Hub({ posts }: { posts: Post[] }) {
+export default function Hub({ posts, scrollRef }: { posts: Post[], scrollRef: React.RefObject<HTMLElement | null> }) {
   const { t } = useLanguage();
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
 
@@ -85,42 +120,18 @@ export default function Hub({ posts }: { posts: Post[] }) {
       
       <div className="space-y-6">
         <h3 className="text-[10px] font-bold tracking-[0.3em] text-muted uppercase text-center opacity-40">{t('hub.published')}</h3>
-        <div className="space-y-4">
-          {posts.filter(p => p.isPublished).length === 0 ? (
-            <div className="glass-card border border-dashed border-border/80 p-12 rounded-[32px] text-center text-muted italic serif text-sm">
-              {t('hub.empty')}
-            </div>
-          ) : (
-            posts.filter(p => p.isPublished).sort((a,b) => b.id - a.id).map(post => (
-              <div key={post.id} className="glass-card border border-border p-8 rounded-[40px] shadow-sm hover:shadow-lg transition-all duration-500">
-                <div className="flex items-start justify-between mb-6">
-                   <div className="space-y-1">
-                      <div className="text-[9px] font-bold text-accent uppercase tracking-widest">{post.rehberType ? `🗺️ ${post.rehberType}` : t('hub.blended')}</div>
-                      <div className="text-[10px] text-muted">{post.date} &bull; {post.platform || t('hub.hq')}</div>
-                   </div>
-                   <div className="flex gap-1">
-                      {post.tags?.map(t => (
-                        <span key={t} className="text-[9px] font-bold bg-bg px-2 py-1 rounded-md opacity-60 uppercase">{t}</span>
-                      ))}
-                   </div>
+        <div className="relative">
+          {(() => {
+            const publishedPosts = posts.filter(p => p.isPublished).sort((a,b) => b.id - a.id);
+            if (publishedPosts.length === 0) {
+              return (
+                <div className="glass-card border border-dashed border-border/80 p-12 rounded-[32px] text-center text-muted italic serif text-sm">
+                  {t('hub.empty')}
                 </div>
-                
-                <div className="serif text-lg leading-relaxed text-text italic" dangerouslySetInnerHTML={{ __html: post.content }} />
-                
-                {post.media && post.media.length > 0 && (
-                  <div className="flex gap-2 mt-6 overflow-x-auto no-scrollbar pb-2">
-                    {post.media.map((m, i) => (
-                      <div key={i} className="shrink-0 w-24 h-24 bg-bg rounded-2xl border border-border overflow-hidden">
-                        {m.type === 'image' && <img src={m.url} className="w-full h-full object-cover" />}
-                        {m.type === 'audio' && <div className="w-full h-full flex items-center justify-center bg-accent-soft/20 text-accent"><Music size={16} /></div>}
-                        {m.type === 'text' && <div className="w-full h-full flex items-center justify-center bg-yellow-soft/20 text-muted"><Type size={16} /></div>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))
-          )}
+              );
+            }
+            return <PublishedList publishedPosts={publishedPosts} t={t} />;
+          })()}
         </div>
       </div>
       

@@ -1,3 +1,4 @@
+import logo from '../assets/logo.png';
 import { LayoutDashboard, Archive, Radio, Database, Brain, LogOut, User, Globe, Moon,Sun, PanelLeftClose } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -6,15 +7,12 @@ import { useEffect, useState } from 'react';
 interface NavigationProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  user: { name: string; email: string } | null;
-  login: () => void;
-  logout: () => void;
   onToggleLofi: () => void;
   isLofiPlaying: boolean;
   onToggleSidebar?: () => void;
 }
 
-export default function Navigation({ activeTab, setActiveTab, user, login, logout, onToggleLofi, isLofiPlaying, onToggleSidebar }: NavigationProps) {
+export default function Navigation({ activeTab, setActiveTab, onToggleLofi, isLofiPlaying, onToggleSidebar }: NavigationProps) {
   const { t, lang, setLang } = useLanguage();
   const [isDark, setIsDark] = useState(false);
  
@@ -65,11 +63,18 @@ export default function Navigation({ activeTab, setActiveTab, user, login, logou
   return (
     <nav className="w-full h-full flex flex-col p-4 md:p-8 gap-4 overflow-y-auto no-scrollbar relative">
       <div className="hidden md:flex items-start justify-between mb-4 shrink-0">
-        <div>
-          <div className="flex items-center gap-3 text-accent mb-2 cursor-pointer" onClick={() => setActiveTab('flow')}>
-            <Brain size={28} className="text-accent" />
-            <div className="serif italic text-2xl text-text leading-none font-bold">
-              {t('nav.title')}
+        <div className="w-full">
+          <div className="flex items-center gap-4 text-accent mb-2 cursor-pointer group" onClick={() => setActiveTab('flow')}>
+            <div className="w-14 h-14 rounded-2xl overflow-hidden bg-white/20 flex items-center justify-center shadow-xl border border-white/30 transition-all duration-300 group-hover:scale-105 group-hover:shadow-[#cdb4db]/30">
+              <img src={logo} alt="Logo" className="w-[85%] h-[85%] object-contain" referrerPolicy="no-referrer" />
+            </div>
+            <div className="flex flex-col">
+              <div className="serif italic text-[1.4rem] text-text font-bold leading-tight group-hover:text-accent transition-colors">
+                Amateur
+              </div>
+              <div className="serif italic text-[1.4rem] text-text leading-tight mt-[-6px] opacity-80 group-hover:text-accent transition-colors">
+                Scenius
+              </div>
             </div>
           </div>
           <div className="text-[10px] font-bold tracking-[0.3em] uppercase text-muted mb-1 opacity-60">
@@ -83,25 +88,6 @@ export default function Navigation({ activeTab, setActiveTab, user, login, logou
             title={t('navigation.close_menu')}
           >
             <PanelLeftClose size={20} />
-          </button>
-        )}
-      </div>
-
-      {/* User Auth Section */}
-      <div className="flex flex-col gap-2 mb-2 pointer-events-auto shrink-0">
-        {user ? (
-          <div className="flex items-center justify-between glass-card border border-border p-3 rounded-2xl relative group">
-            <div className="flex flex-col overflow-hidden">
-               <span className="text-xs font-bold text-text truncate">{user.name}</span>
-               <span className="text-[10px] text-muted truncate">{user.email}</span>
-            </div>
-            <button onClick={logout} className="p-1.5 text-muted hover:text-danger hover:bg-danger-soft rounded-full transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 absolute right-2 glass-card">
-              <LogOut size={14} />
-            </button>
-          </div>
-        ) : (
-          <button onClick={login} className="flex items-center gap-2 justify-center w-full glass-card border-accent text-accent hover:bg-accent hover:text-white transition-colors p-3 rounded-2xl text-xs font-bold tracking-wider uppercase border-2">
-             <User size={14} /> {t('nav.login')}
           </button>
         )}
       </div>
