@@ -316,7 +316,13 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
         addPost({
           id: Date.now(),
           content: formData.rehberType ? generateFinalStory() : (formData.idea + (formData.doc ? `<br><br>${formData.doc}` : '')),
-          tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(Boolean) : ['#genel'],
+          tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(Boolean).filter(t => {
+            if (t.toLowerCase() === '#mini-rehber') {
+              alert('Bu etiket sistemi tarafından rezerve edilmiştir ve manuel oluşturulamaz.');
+              return false;
+            }
+            return true;
+          }) : ['#genel'],
           isPublished: false,
           media: formData.media,
           date: new Date().toLocaleDateString('tr-TR'),
@@ -525,7 +531,13 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
     addPost({
       id: Date.now(),
       content: formData.rehberType ? generateFinalStory() : (formData.idea + (formData.doc ? `<br><br>${formData.doc}` : '')),
-      tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(Boolean) : ['#genel'],
+      tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(Boolean).filter(t => {
+        if (t.toLowerCase() === '#mini-rehber') {
+          alert('Bu etiket sistemi tarafından rezerve edilmiştir ve manuel oluşturulamaz.');
+          return false;
+        }
+        return true;
+      }) : ['#genel'],
       isPublished: false,
       media: formData.media,
       date: new Date().toLocaleDateString('tr-TR'),
@@ -544,7 +556,13 @@ export default function Wizard({ addPost, archivePostsByTag, hemingwayChain, sav
     addPost({
       id: Date.now(),
       content: formData.rehberType ? generateFinalStory() : generateFinalStory(formData.polishedStory || formData.q1),
-      tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(Boolean) : ['#genel'],
+      tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(Boolean).filter(t => {
+        if (t.toLowerCase() === '#mini-rehber') {
+          alert('Bu etiket sistemi tarafından rezerve edilmiştir ve manuel oluşturulamaz.');
+          return false;
+        }
+        return true;
+      }) : ['#genel'],
       isPublished: true,
       isAmateur: formData.isAmateur,
       isTeaching: formData.isTeaching,

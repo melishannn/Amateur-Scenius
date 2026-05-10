@@ -1,10 +1,10 @@
 import { useLanguage } from '../contexts/LanguageContext';
-import { useState, useEffect, memo, useRef } from 'react';
+import { useState, useEffect, memo, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Post } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Star, ChevronLeft, ArrowRight, Trash2, Music, FileText, Plus, X, AlertTriangle, Tag, Info } from 'lucide-react';
+import { Star, ChevronLeft, ArrowRight, Trash2, Music, FileText, Plus, X, AlertTriangle, Tag, Info, ArrowLeft, Check } from 'lucide-react';
 import { DeleteAlertDialog } from './ui/DeleteAlertDialog';
 import { MoveTagDialog } from './ui/MoveTagDialog';
 import { InfoModal } from './ui/InfoModal';
@@ -21,6 +21,7 @@ interface CabinetProps {
   publishPost: (id: number) => void;
   updatePostTags: (id: number, newTags: string[]) => void;
   archivePostsByTag: (tag: string) => void;
+  archivePostsByIds: (ids: number[]) => void;
   scrollRef: React.RefObject<HTMLElement | null>;
   isLoading?: boolean;
 }
@@ -199,32 +200,10 @@ function VirtualTagTimeline({ sortedPosts, renderPost }: { sortedPosts: Post[], 
 }
 
 // ─── ANA COMPONENT ────────────────────────────────────────────────────────────
-export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, addPost, deletePost, deleteTag, publishPost, updatePostTags, archivePostsByTag, scrollRef, isLoading }: CabinetProps) {
+export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, addPost, deletePost, deleteTag, publishPost, updatePostTags, archivePostsByTag, archivePostsByIds, scrollRef, isLoading }: CabinetProps) {
   const { t, lang } = useLanguage();
 
-  useEffect(() => {
-    const handleSetStockStep = (e: any) => {
-      const step = e.detail.step;
-      if (step === -1) {
-        setStockWizard(null);
-        return;
-      }
-      setStockWizard(prev => {
-        if (prev) return { ...prev, step };
-        // Tour is trying to open it automatically (demo mode)
-        return {
-          tag: '#demo',
-          step,
-          selectedPostIds: posts.slice(0, 2).map(p => p.id),
-          approvedKeywords: ['örnek', 'kelime'],
-          suggestedTemplate: 'technical',
-          answers: ['', '', '', '', '']
-        };
-      });
-    };
-    window.addEventListener('set-stock-wizard-step', handleSetStockStep);
-    return () => window.removeEventListener('set-stock-wizard-step', handleSetStockStep);
-  }, [posts]);
+
 
   const [filter, setFilter] = useState<'all' | 'starred' | 'draft' | 'published'>('all');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
@@ -232,6 +211,75 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
   const [selectedItemIds, setSelectedItemIds] = useState<number[]>([]);
   const [tagSearch, setTagSearch] = useState('');
   const [showStockAlertForTag, setShowStockAlertForTag] = useState<string | null>(null);
+
+  const filteredPosts = useMemo(() => posts.filter(p => {
+    if (filter === 'starred') return stars.includes(p.id);
+    if (filter === 'draft') return !p.isPublished;
+    if (filter === 'published') return p.isPublished;
+    return true;
+  }), [posts, filter, stars]);
+
+  const groups = useMemo(() => {
+    const g: Record<string, Post[]> = {};
+    filteredPosts.forEach(p => {
+      if (p.isArchived) return;
+      p.tags.forEach(t => {
+        if (!g[t]) g[t] = [];
+        g[t].push(p);
+      });
+    });
+    return g;
+  }, [filteredPosts]);
+
+  const draftCountsByTag = useMemo(() => {
+    const counts: Record<string, number> = {};
+    posts.forEach(p => {
+      if (p.isArchived || p.isPublished) return;
+      p.tags.forEach(t => {
+        counts[t] = (counts[t] || 0) + 1;
+      });
+    });
+    return counts;
+  }, [posts]);
+
+  const handleSetStockStep = useCallback((e: any) => {
+    const step = e.detail.step;
+    const tag = e.detail.tag;
+    console.log('Cabinet: handleSetStockStep received:', step, tag);
+    if (step === -1) {
+      setStockWizard(null);
+      return;
+    }
+
+    const liveGroups: Record<string, Post[]> = {};
+    posts.forEach(p => {
+      if (p.isArchived) return;
+      p.tags.forEach(t => {
+        if (!liveGroups[t]) liveGroups[t] = [];
+        liveGroups[t].push(p);
+      });
+    });
+
+    const targetTag = tag || selectedTag || Object.keys(liveGroups)[0] || 'cesaret';
+    
+    if (targetTag) {
+      setSelectedTag(targetTag);
+      setShowStockAlertForTag(targetTag);
+    }
+    setStockWizard({
+      tag: targetTag,
+      step,
+      selectedPostIds: posts.filter(p => !p.isArchived && p.tags.includes(targetTag)).map(p => p.id),
+      approvedKeywords: [],
+      suggestedTemplate: 'technical',
+      answers: ['', '', '', '', '']
+    });
+  }, [posts, setSelectedTag, setShowStockAlertForTag, selectedTag]);
+
+  useEffect(() => {
+    window.addEventListener('set-stock-wizard-step', handleSetStockStep);
+    return () => window.removeEventListener('set-stock-wizard-step', handleSetStockStep);
+  }, [handleSetStockStep]);
 
   // ─── Dialog State ───
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
@@ -347,36 +395,30 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
 
   const openStockWizard = (tag: string) => {
     console.log('openStockWizard called with tag:', tag);
+    if (!tag) {
+       console.error('openStockWizard called with null/empty tag');
+       return;
+    }
     const tagPosts = groups[tag] || [];
-    console.log('tagPosts length:', tagPosts.length);
+    const drafts = tagPosts.filter(p => !p.isPublished);
+    console.log('tagPosts length:', tagPosts.length, 'drafts:', drafts.length);
+    console.log('groups:', groups);
+    
     setStockWizard({
       tag,
       step: 0,
-      selectedPostIds: tagPosts.map(p => p.id), // Varsayılan hepsi seçili
+      selectedPostIds: drafts.length > 0 ? drafts.map(p => p.id) : tagPosts.map(p => p.id), // Varsayılan sadece taslaklar seçili
       approvedKeywords: [],
       suggestedTemplate: 'technical',
       answers: []
     });
     console.log('stockWizard state set');
+    setTimeout(() => {
+    console.log('500ms sonra stockWizard:', stockWizard);
+  }, 500);
   };
 
-  const filteredPosts = posts.filter(p => {
-    if (filter === 'starred') return stars.includes(p.id);
-    if (filter === 'draft') return !p.isPublished;
-    if (filter === 'published') return p.isPublished;
-    return true;
-  });
-
   const STOCK_TARGET = 10;
-  const groups: Record<string, Post[]> = {};
-
-  filteredPosts.forEach(p => {
-    if (p.isArchived) return;
-    p.tags.forEach(t => {
-      if (!groups[t]) groups[t] = [];
-      groups[t].push(p);
-    });
-  });
 
   const getTagIcon = (tag: string) => {
     const icons: Record<string, string> = {
@@ -458,7 +500,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
     addPost({
       id: Date.now(),
       content: buildGuideContent(type, tag, answers),
-      tags: [tag, '#mini-rehber'],
+      tags: [tag],
       isPublished: true,
       date: new Date().toLocaleDateString('tr-TR'),
       isTeaching: true,
@@ -469,7 +511,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
   };
 
   const selectedPost = posts.find(p => p.id === selectedPostId);
-  const allTags = Array.from(new Set(posts.flatMap(p => p.tags))).sort();
+  const allTags = Array.from(new Set(posts.filter(p => !p.isArchived).flatMap(p => p.tags))).sort();
 
   return (
     <div className="space-y-6 pb-32">
@@ -577,8 +619,9 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                 .filter(t => t.toLowerCase().includes(tagSearch.toLowerCase()))
                 .map(tag => {
                   const tagPostsCount = groups[tag]?.length ?? 0;
-                  const hasBucketAlert = tagPostsCount >= 3 && tagPostsCount < STOCK_TARGET;
-                  const hasMilestoneAlert = tagPostsCount >= STOCK_TARGET;
+                  const draftsCount = draftCountsByTag[tag] ?? 0;
+                  const hasBucketAlert = draftsCount >= 3 && draftsCount < STOCK_TARGET;
+                  const hasMilestoneAlert = draftsCount >= STOCK_TARGET;
 
                   return (
                     <div key={tag} className="relative group/tag" id={`tag-container-${tag}`}>
@@ -586,10 +629,10 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                         id={`tag-${tag}`}
                         onClick={() => setSelectedTag(tag === selectedTag ? null : tag)}
                         className={`
-                          px-4 py-2 rounded-xl text-[9px] font-extrabold uppercase tracking-widest border whitespace-nowrap transition-all relative overflow-hidden h-full flex items-center gap-2
+                          px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest border whitespace-nowrap transition-all relative overflow-hidden h-full flex items-center gap-2
                           ${selectedTag === tag
-                            ? 'bg-accent text-white border-accent shadow-md'
-                            : 'bg-surface/50 text-muted border-border hover:border-accent hover:text-accent'}
+                            ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white border-transparent shadow-md'
+                            : 'bg-white text-purple-900 border-purple-200 hover:border-purple-300'}
                         `}
                       >
                         <span className="relative z-10">{tag}</span>
@@ -601,11 +644,15 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                               setSelectedTag(tag);
                               setShowStockAlertForTag(tag === showStockAlertForTag ? null : tag);
                             }}
-                            className="stock-chip relative z-20 p-1 -m-1 hover:bg-black/5 rounded-full transition-colors cursor-pointer group/alert"
+                            className={`stock-chip relative z-20 p-1 rounded-full transition-all cursor-pointer group/alert flex items-center justify-center
+                              ${selectedTag === tag 
+                                ? 'bg-yellow-100 dark:bg-yellow-900/40 border border-yellow-300' 
+                                : 'bg-yellow-50 dark:bg-yellow-900/20 shadow-sm border border-yellow-200'}`}
                           >
+                            <div className="absolute inset-0 rounded-full border-2 border-yellow-400 opacity-75 animate-ping"></div>
                             <AlertTriangle 
-                              size={12} 
-                              className={`${hasMilestoneAlert ? 'text-accent animate-pulse' : 'text-accent/60'} group-hover/alert:scale-125 transition-transform shrink-0`} 
+                              size={14} 
+                              className={`text-yellow-600 dark:text-yellow-400 group-hover/alert:scale-125 transition-transform shrink-0 animate-pulse relative z-10`} 
                             />
                           </div>
                         )}
@@ -614,6 +661,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                           style={{ width: `${Math.min(tagPostsCount / STOCK_TARGET * 100, 100)}%` }}
                         />
                       </button>
+
                       
                       {/* Hover Tooltip for Quick Action */}
                       {(hasBucketAlert || hasMilestoneAlert) && (
@@ -646,9 +694,9 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
 
       {/* MİLESTONE & PATTERN AREA */}
       <div className="space-y-4 mb-10">
-        {selectedTag && showStockAlertForTag === selectedTag && (groups[selectedTag]?.length ?? 0) >= 3 && (
+        {selectedTag && showStockAlertForTag === selectedTag && (draftCountsByTag[selectedTag] ?? 0) >= 3 && (
           <div className="space-y-4">
-            {groups[selectedTag].length >= STOCK_TARGET ? (
+            {(draftCountsByTag[selectedTag] ?? 0) >= STOCK_TARGET ? (
               <div className="bg-surface backdrop-blur-md border border-accent rounded-[32px] p-8 shadow-xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 rounded-full -translate-y-1/2 translate-x-1/2" />
                 <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
@@ -666,6 +714,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                     {(['technical', 'documentary', 'readingList', 'oldVsNew'] as TemplateKey[]).map(type => (
                       <button
                         key={type}
+                        id={`template-${type}`}
                         onClick={() => setTemplateModal({ tag: selectedTag, type, count: groups[selectedTag].length, step: 'context', answers: Array(5).fill('') })}
                         className="bg-bg border border-border p-4 rounded-2xl hover:border-accent group transition-all text-center flex flex-col items-center gap-2"
                       >
@@ -692,7 +741,11 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                   </div>
                   <div className="flex gap-2 flex-wrap justify-end">
                     <button
-                      onClick={() => openStockWizard(selectedTag)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openStockWizard(selectedTag);
+                      }}
                       className="bg-accent text-white px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:scale-105 transition-all shadow-sm flex items-center gap-2"
                     >
                       {t('cabinet.start_wizard')}
@@ -700,6 +753,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                     {(['technical', 'documentary', 'readingList', 'oldVsNew'] as TemplateKey[]).map(type => (
                       <button
                         key={type}
+                        id={`template-${type}`}
                         onClick={() => setTemplateModal({ tag: selectedTag, type, count: groups[selectedTag].length, step: 'context', answers: Array(5).fill('') })}
                         className="bg-bg border border-border px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:border-accent hover:text-accent text-text transition-all shadow-sm flex items-center gap-2"
                       >
@@ -733,14 +787,23 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                         <ChevronLeft size={16} /> {t('cabinet.return_btn')}
                       </button>
             </div>
-            <h3 className="serif text-[22px] h-[39px] leading-[19px] not-italic text-text">
+            <h3 className="serif text-[22px] h-[39px] flex items-center leading-[19px] not-italic text-text">
               {getTagIcon(selectedTag)} {selectedTag}
-              <span className="text-sm font-sans not-italic text-muted ml-4 tracking-[0.3em] font-normal uppercase opacity-50">/ {groups[selectedTag]?.length} {t('cabinet.items_count')}</span>
+              <span className="text-sm font-sans not-italic text-muted ml-4 tracking-[0.3em] font-normal uppercase opacity-50">/ {groups[selectedTag]?.length} {t('cabinet.items_count').replace('{count}', '')}</span>
+              {(draftCountsByTag[selectedTag] ?? 0) >= 3 && (
+                <div className="ml-4 flex items-center justify-center w-8 h-8 rounded-full bg-yellow-100 dark:bg-yellow-900/40 relative" title="Biriken taslak uyarısı">
+                  <div className="absolute inset-0 rounded-full border-2 border-yellow-400 opacity-75 animate-ping"></div>
+                  <AlertTriangle size={16} className="text-yellow-600 dark:text-yellow-400 relative z-10 animate-pulse" />
+                </div>
+              )}
             </h3>
 
             <div className="pt-4">
               {(() => {
-                const tagPosts = groups[selectedTag] || [];
+                const tagPosts = (groups[selectedTag] || []).slice().sort((a, b) => {
+                  if (a.isPublished === b.isPublished) return 0;
+                  return a.isPublished ? 1 : -1;
+                });
                 const allSelected = tagPosts.length > 0 && selectedItemIds.length === tagPosts.length;
                 const someSelected = selectedItemIds.length > 0 && selectedItemIds.length < tagPosts.length;
 
@@ -1002,7 +1065,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                 <div className="flex gap-4 pt-4 pb-12">
                   <button
                     onClick={() => toggleStar(selectedPost.id)}
-                    className={`shrink-0 h-14 md:h-16 px-6 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] border flex items-center justify-center gap-3 transition-all duration-300 ${
+                    className={`flex-1 h-14 md:h-16 px-6 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] border flex items-center justify-center gap-3 transition-all duration-300 ${
                       stars.includes(selectedPost.id)
                         ? 'bg-[#FFD166] text-[#3d2960] border-[#FFD166] shadow-xl'
                         : 'bg-surface text-text border-border hover:border-[#FFD166] hover:text-[#3d2960] shadow-sm'
@@ -1011,15 +1074,6 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                     <Star size={16} className={stars.includes(selectedPost.id) ? 'fill-[#3d2960]' : ''} />
                     {stars.includes(selectedPost.id) ? t('cabinet.starred') : t('cabinet.star')}
                   </button>
-
-                  {!selectedPost.isPublished && (
-                    <button
-                      onClick={() => publishPost(selectedPost.id)}
-                      className="flex-1 h-14 md:h-16 rounded-full bg-success text-white text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] shadow-md hover:shadow-lg transition-all"
-                    >
-                      {t('common.publish')}
-                    </button>
-                  )}
 
                   <button
                     onClick={() => setMoveTargetPostId(selectedPost.id)}
@@ -1052,21 +1106,21 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
           const { step, answers, tag, type } = templateModal;
 
           return (
-            <div className="fixed inset-0 z-[100] isolate">
+            <div className="fixed inset-0 z-[9995] isolate">
               <motion.div
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 onClick={step !== 'done' ? closeModal : undefined}
                 className="absolute inset-0 bg-text/20 backdrop-blur-md"
               />
 
-              <motion.div
-                key={step}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 30 }}
-                transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-                className="absolute bottom-0 left-0 right-0 md:top-1/2 md:-translate-y-1/2 md:left-1/2 md:-translate-x-1/2 md:w-[580px] md:h-auto glass rounded-t-[40px] md:rounded-[40px] shadow-2xl overflow-hidden max-h-[92vh] flex flex-col pointer-events-auto"
-              >
+             <motion.div
+  key="drawer"
+  initial={{ x: '100%' }}
+  animate={{ x: 0 }}
+  exit={{ x: '100%' }}
+  transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+  className="absolute inset-y-0 right-0 w-full md:w-[520px] bg-bg shadow-2xl flex flex-col border-l border-border pointer-events-auto"
+>
                 <div className="flex items-start justify-between p-6 pb-5 shrink-0"
                   style={{ background: def.colorSoft, borderBottom: `1px solid ${def.colorBorder}` }}>
                   <div className="flex items-center gap-4">
@@ -1225,20 +1279,27 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
           );
         })(), document.body)}
       {/* STOCK BİRİKTİ SİHİRBAZI (YENİ AKIŞ) */}
-      <AnimatePresence>
-        {stockWizard && createPortal((
-          <div className="fixed inset-0 z-[120] isolate pointer-events-none">
+      {console.log('stockWizard state:', stockWizard)}
+      {createPortal((
+        <AnimatePresence>
+          {stockWizard && (
+            <div className="fixed inset-0 z-[10002]">
               <motion.div
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }}
                 onClick={() => stockWizard.step === 5 ? setStockWizard(null) : undefined}
                 className="absolute inset-0 bg-black/20 backdrop-blur-xl pointer-events-auto"
               />
-            <motion.div
-              id="stockDrawer"
-              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="absolute inset-y-0 right-0 w-full md:w-[600px] bg-bg shadow-2xl flex flex-col border-l border-border pointer-events-auto"
-            >
+              <motion.div
+                id="stockDrawer"
+                initial={{ x: '100%' }} 
+                animate={{ x: 0 }} 
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                className="absolute inset-y-0 right-0 w-full md:w-[600px] bg-bg shadow-2xl flex flex-col border-l border-border pointer-events-auto"
+              >
+              {/* Wizard Content ... assuming it closes as before */}
               <div className="p-6 border-b border-border flex items-center justify-between shrink-0 bg-surface">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-accent text-bg rounded-xl flex items-center justify-center text-xl font-bold">🛠️</div>
@@ -1254,50 +1315,61 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
 
               <div className="flex-1 overflow-y-auto p-6 space-y-10 no-scrollbar">
                 
+                {/* WIZARD STEP INDICATOR - FOR ALL STEPS */}
+                <div className="flex gap-2 mb-6">
+                  {[0,1,2,3,4].map((s) => (
+                    <div key={s} className={`h-1.5 flex-1 rounded-full transition-all ${s <= stockWizard.step ? 'bg-accent' : 'bg-border'}`} />
+                  ))}
+                </div>
+
                 {/* STEP 0: ZAMAN ÇİZGİSİ + SEÇİM */}
                 {stockWizard.step === 0 && (
                   <div className="space-y-8">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <h4 className="text-xl font-bold text-text" id="stock-step-0">{t('stock.step_0_title')}</h4>
+                        <h4 className={`text-xl font-bold ${selectedTag === 'cesaret' ? 'text-accent' : 'text-text'}`} id="stock-step-0">{t('stock.step_0_title')}</h4>
                       </div>
                       <p className="text-xs text-muted leading-relaxed">{t('stock.step_0_desc')}</p>
                     </div>
                     
                     <div className="relative pl-6 space-y-6 before:content-[''] before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-border">
-                      {(groups[stockWizard.tag] || []).map((p) => {
-                        const isSelected = stockWizard.selectedPostIds.includes(p.id);
-                        return (
-                          <div 
-                            key={p.id} 
-                            onClick={() => {
-                              const ids = isSelected 
-                                ? stockWizard.selectedPostIds.filter(id => id !== p.id)
-                                : [...stockWizard.selectedPostIds, p.id];
-                              setStockWizard({ ...stockWizard, selectedPostIds: ids });
-                            }}
-                            className={`relative p-4 rounded-2xl cursor-pointer transition-all border-2 group ${
-                              isSelected ? 'bg-accent/5 border-accent scale-[1.01] shadow-lg shadow-accent/5' : 'bg-surface border-transparent hover:border-border'
-                            }`}
-                          >
-                            <div className={`absolute -left-[24px] top-1/2 -translate-y-1/2 w-[10px] h-[10px] rounded-full border-2 border-bg ring-4 ring-transparent transition-all ${
-                              isSelected ? 'bg-accent ring-accent/20' : 'bg-border'
-                            }`} />
-                            
-                            <div className="flex justify-between items-start gap-4">
-                              <div className="space-y-1">
-                                <div className="text-[9px] font-bold text-muted uppercase tracking-widest">{p.date}</div>
-                                <div className="text-sm text-text/80 line-clamp-2 leading-relaxed italic serif" dangerouslySetInnerHTML={{ __html: p.content }} />
-                              </div>
-                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                                isSelected ? 'bg-accent border-accent text-bg scale-110' : 'border-border text-transparent'
-                              }`}>
-                                <ArrowRight size={10} className="rotate-[-45deg]" />
+                      { (groups[stockWizard.tag] && groups[stockWizard.tag].length > 0) ? (
+                        (groups[stockWizard.tag] || []).filter(p => !p.isPublished).map((p) => {
+                          const isSelected = stockWizard.selectedPostIds.includes(p.id);
+                          return (
+                            <div 
+                              key={p.id} 
+                              onClick={() => {
+                                const ids = isSelected 
+                                  ? stockWizard.selectedPostIds.filter(id => id !== p.id)
+                                  : [...stockWizard.selectedPostIds, p.id];
+                                setStockWizard({ ...stockWizard, selectedPostIds: ids });
+                              }}
+                              className={`relative p-4 rounded-2xl cursor-pointer transition-all border-2 group ${
+                                isSelected ? 'bg-accent/5 border-accent scale-[1.01] shadow-lg shadow-accent/5' : 'bg-surface border-transparent hover:border-border'
+                              }`}
+                            >
+                              <div className={`absolute -left-[24px] top-1/2 -translate-y-1/2 w-[10px] h-[10px] rounded-full border-2 border-bg ring-4 ring-transparent transition-all ${
+                                isSelected ? 'bg-accent ring-accent/20' : 'bg-border'
+                              }`} />
+                              
+                              <div className="flex justify-between items-start gap-4">
+                                <div className="space-y-1">
+                                  <div className="text-[9px] font-bold text-muted uppercase tracking-widest">{p.date}</div>
+                                  <div className="text-sm text-text/80 line-clamp-2 leading-relaxed italic serif" dangerouslySetInnerHTML={{ __html: p.content }} />
+                                </div>
+                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                                  isSelected ? 'bg-accent border-accent text-bg scale-110' : 'border-border text-transparent'
+                                }`}>
+                                  <ArrowRight size={10} className="rotate-[-45deg]" />
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })
+                      ) : (
+                        <div className="p-4 text-xs text-muted italic">Bu etikette henüz fikir yok.</div>
+                      )}
                     </div>
 
                       <button
@@ -1406,7 +1478,7 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                           return (
                               <button
                                 key={key}
-                                id={`template-${key}`}
+                                id={`wizard-template-${key}`}
                                 onClick={() => setStockWizard({ ...stockWizard, suggestedTemplate: key as TemplateKey })}
                                 className={`p-6 rounded-[24px] border-2 text-left transition-all relative overflow-hidden group ${
                                   isSelected ? 'bg-accent/5 border-accent' : 'bg-surface border-transparent hover:border-border'
@@ -1557,27 +1629,27 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                       <div className="grid grid-cols-2 gap-4">
                         <button
                           onClick={() => setStockWizard(prev => prev ? { ...prev, step: 3 } : null)}
-                          className="py-5 border-2 border-border rounded-[24px] font-bold uppercase tracking-widest text-xs hover:bg-surface transition-colors"
+                          className="py-5 bg-surface rounded-full font-bold uppercase tracking-[0.15em] text-[11px] text-accent hover:opacity-90 transition-all outline-none shadow-[inset_0_4px_8px_rgba(0,0,0,0.08),_inset_0_-4px_8px_rgba(255,255,255,0.9)]"
                         >
                           {t('common.edit')}
                         </button>
                       <button
                         onClick={() => {
-                          const { tag, suggestedTemplate, answers } = stockWizard;
+                          const { tag, suggestedTemplate, answers, selectedPostIds } = stockWizard;
                           addPost({
                             id: Date.now(),
                             content: buildGuideContent(suggestedTemplate, tag, answers),
-                            tags: [tag, '#mini-rehber'],
+                            tags: [tag],
                             isPublished: true,
                             date: new Date().toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US'),
                             isTeaching: true,
                             guideType: suggestedTemplate,
                             sourceTag: tag,
                           } as Post);
-                          archivePostsByTag(tag);
+                          archivePostsByIds(selectedPostIds);
                           setStockWizard({ ...stockWizard, step: 5 });
                         }}
-                        className="py-5 bg-success text-white rounded-[24px] font-bold uppercase tracking-widest text-xs shadow-xl"
+                        className="py-5 bg-accent text-white rounded-full font-bold uppercase tracking-[0.15em] text-[11px] outline-none shadow-[inset_0_2px_4px_rgba(255,255,255,0.3),_inset_0_-4px_8px_rgba(0,0,0,0.2),_0_8px_16px_rgba(106,80,167,0.3)] hover:scale-[0.98] transition-all"
                       >
                         {t('common.publish_check')}
                       </button>
@@ -1608,11 +1680,13 @@ export default function Cabinet({ posts, stars, toggleStar, saveNote, notes, add
                   </div>
                 )}
 
+
               </div>
             </motion.div>
           </div>
-        ), document.body)}
+        )}
       </AnimatePresence>
+    ), document.body)}
     </div>
   );
 }

@@ -36,35 +36,33 @@ export default function App() {
       initialPosts = JSON.parse(postsSaved);
     }
     
-    // Yalnızca hiç post yoksa başlangıç postlarını yükle, ki kılavuz için "stok" örneği olsun
-    if (initialPosts.length === 0) {
+    // 3 adet sabit "cesaret" fikri ID'leri
+    const fixIds = [1000000001, 1000000002, 1000000003];
+    const hasFixPosts = initialPosts.some(p => fixIds.includes(p.id));
+
+    if (!hasFixPosts) {
       initialPosts = [
+        ...initialPosts.filter(p => !fixIds.includes(p.id)),
         {
-          id: Date.now() - 3000,
-          content: "Amatör olmanın en büyük avantajı, hata yapma özgürlüğüdür. Profesyonellerin aksine, bizim kaybedecek bir şanımız yok, bu da bizi daha cesur kılıyor.",
-          tags: ["cesaret"],
-          createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-          isDraft: false,
-          isPublished: false,
-          isArchived: false,
-        },
-        {
-          id: Date.now() - 2000,
+          id: fixIds[0],
           content: "Kusursuzluk bir öğrenme engelidir. Mükemmeli beklerken, aslında ilerleme fırsatını kaçırıyoruz. Hatalı da olsa üretmek, hiçbir şey yapmamaktan daha öğreticidir.",
           tags: ["cesaret"],
-          createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
-          isDraft: false,
+          date: new Date(Date.now() - 86400000 * 3).toLocaleDateString('tr-TR'),
           isPublished: false,
-          isArchived: false,
         },
         {
-          id: Date.now() - 1000,
+          id: fixIds[1],
+          content: "Amatör olmanın en büyük avantajı, hata yapma özgürlüğüdür. Profesyonellerin aksine, bizim kaybedecek bir şanımız yok, bu da bizi daha cesur kılıyor.",
+          tags: ["cesaret"],
+          date: new Date(Date.now() - 86400000 * 2).toLocaleDateString('tr-TR'),
+          isPublished: false,
+        },
+        {
+          id: fixIds[2],
           content: "Eserini dünyayla paylaşmak korkutucu olabilir ama asıl korkutucu olan, seninle aynı şeyleri düşünen insanlarla asla bağ kuramamaktır. Fikirlerin, henüz tanışmadığın dostlarına birer davetiyedir.",
           tags: ["cesaret"],
-          createdAt: new Date(Date.now() - 3600000).toISOString(),
-          isDraft: false,
+          date: new Date(Date.now() - 86400000 * 1).toLocaleDateString('tr-TR'),
           isPublished: false,
-          isArchived: false,
         }
       ];
     }
@@ -250,7 +248,16 @@ export default function App() {
     setAppState((prev) => ({
       ...prev,
       posts: prev.posts.map(p => 
-        (p.tags.includes(tag) && !p.rehberType) ? { ...p, isArchived: true } : p
+        (p.tags.includes(tag) && !p.isTeaching) ? { ...p, isArchived: true } : p
+      )
+    }));
+  };
+
+  const archivePostsByIds = (ids: number[]) => {
+    setAppState((prev) => ({
+      ...prev,
+      posts: prev.posts.map(p => 
+        (ids.includes(p.id)) ? { ...p, isArchived: true } : p
       )
     }));
   };
@@ -333,6 +340,7 @@ export default function App() {
                 publishPost={publishPost}
                 updatePostTags={updatePostTags}
                 archivePostsByTag={archivePostsByTag}
+                archivePostsByIds={archivePostsByIds}
                 scrollRef={mainRef}
                 isLoading={false}
               />

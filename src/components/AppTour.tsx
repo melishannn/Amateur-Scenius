@@ -13,6 +13,7 @@ interface TourStep {
   wizardStep?: number;
   // Hangi stock wizard adımına geçilmeli
   stockWizardStep?: number;
+  stockWizardTag?: string;
   // Hangi tab açılmalı
   tab?: 'flow' | 'cabinet' | 'hub';
   // Bu adımda beklenecek extra süre (ms) — DOM render için
@@ -311,7 +312,8 @@ const buildSteps = (t: (key: string) => string): TourStep[] => [
     title: t('tour.step16.title'),
     tab: 'cabinet',
     stockWizardStep: 0,
-    waitMs: 500,
+    stockWizardTag: 'cesaret',
+    waitMs: 800,
     content: (
       <div className="space-y-4">
         <p className="text-sm">{t('tour.step16.desc')}</p>
@@ -346,7 +348,7 @@ const buildSteps = (t: (key: string) => string): TourStep[] => [
     placement: 'right',
   },
   {
-    target: '#template-technical',
+    target: '#wizard-template-technical',
     title: t('tour.step19.title'),
     tab: 'cabinet',
     stockWizardStep: 2,
@@ -359,7 +361,7 @@ const buildSteps = (t: (key: string) => string): TourStep[] => [
     placement: 'bottom',
   },
   {
-    target: '#template-documentary',
+    target: '#wizard-template-documentary',
     title: t('tour.step20.title'),
     tab: 'cabinet',
     stockWizardStep: 2,
@@ -372,7 +374,7 @@ const buildSteps = (t: (key: string) => string): TourStep[] => [
     placement: 'bottom',
   },
   {
-    target: '#template-readingList',
+    target: '#wizard-template-readingList',
     title: t('tour.step21.title'),
     tab: 'cabinet',
     stockWizardStep: 2,
@@ -385,7 +387,7 @@ const buildSteps = (t: (key: string) => string): TourStep[] => [
     placement: 'bottom',
   },
   {
-    target: '#template-oldVsNew',
+    target: '#wizard-template-oldVsNew',
     title: t('tour.step22.title'),
     tab: 'cabinet',
     stockWizardStep: 2,
@@ -529,24 +531,26 @@ function getTooltipPosition(
 }
 
 // ─── SPOTLIGHT OVERLAY ────────────────────────────────────────────────────────
-function SpotlightOverlay({ targetRect }: { targetRect: DOMRect | null }) {
+function SpotlightOverlay({ targetRect, isStockWizard }: { targetRect: DOMRect | null, isStockWizard?: boolean }) {
   if (!targetRect) return (
-    <div className="fixed inset-0 bg-black/60 z-[9998]" style={{ pointerEvents: 'none' }} />
+    <div className={`fixed inset-0 ${isStockWizard ? 'bg-black/10' : 'bg-black/60'} ${isStockWizard ? 'z-[10004]' : 'z-[9990]'}`} style={{ pointerEvents: 'none' }} />
   );
 
   const rect = targetRect;
   const PAD = 8;
+  const bgClass = isStockWizard ? 'bg-black/10' : 'bg-black/60';
+  const zClass = isStockWizard ? 'z-[10004]' : 'z-[9990]';                
 
   return (
-    <div className="fixed inset-0 z-[9998]" style={{ pointerEvents: 'none' }}>
+    <div className={`fixed inset-0 ${zClass}`} style={{ pointerEvents: 'none' }}>
       {/* Üst */}
-      <div className="absolute bg-black/60" style={{ top: 0, left: 0, right: 0, height: rect.top - PAD }} />
+      <div className={`absolute ${bgClass}`} style={{ top: 0, left: 0, right: 0, height: rect.top - PAD }} />
       {/* Alt */}
-      <div className="absolute bg-black/60" style={{ top: rect.bottom + PAD, left: 0, right: 0, bottom: 0 }} />
+      <div className={`absolute ${bgClass}`} style={{ top: rect.bottom + PAD, left: 0, right: 0, bottom: 0 }} />
       {/* Sol */}
-      <div className="absolute bg-black/60" style={{ top: rect.top - PAD, left: 0, width: rect.left - PAD, height: rect.height + PAD * 2 }} />
+      <div className={`absolute ${bgClass}`} style={{ top: rect.top - PAD, left: 0, width: rect.left - PAD, height: rect.height + PAD * 2 }} />
       {/* Sağ */}
-      <div className="absolute bg-black/60" style={{ top: rect.top - PAD, left: rect.right + PAD, right: 0, height: rect.height + PAD * 2 }} />
+      <div className={`absolute ${bgClass}`} style={{ top: rect.top - PAD, left: rect.right + PAD, right: 0, height: rect.height + PAD * 2 }} />
       {/* Spotlight border */}
       <div className="absolute rounded-2xl" style={{
         top: rect.top - PAD,
@@ -660,22 +664,27 @@ export function AppTour({
     // Tab değiştir
     if (currentStep.tab) setActiveTab(currentStep.tab);
 
-    // Wizard adımını güncelle
-    if (currentStep.wizardStep !== undefined) {
-      window.dispatchEvent(new CustomEvent('set-wizard-step', {
-        detail: { step: currentStep.wizardStep }
-      }));
-    }
+    setTimeout(() => {
+      // Wizard adımını güncelle
+      if (currentStep.wizardStep !== undefined) {
+        window.dispatchEvent(new CustomEvent('set-wizard-step', {
+          detail: { step: currentStep.wizardStep }
+        }));
+      }
 
-    if (currentStep.stockWizardStep !== undefined) {
-      window.dispatchEvent(new CustomEvent('set-stock-wizard-step', {
-        detail: { step: currentStep.stockWizardStep }
-      }));
-    } else {
-      window.dispatchEvent(new CustomEvent('set-stock-wizard-step', {
-        detail: { step: -1 }
-      }));
-    }
+      if (currentStep.stockWizardStep !== undefined) {
+        window.dispatchEvent(new CustomEvent('set-stock-wizard-step', {
+          detail: { 
+            step: currentStep.stockWizardStep,
+            tag: currentStep.stockWizardTag 
+          }
+        }));
+      } else if (currentStep.stockWizardStep === undefined) {
+        window.dispatchEvent(new CustomEvent('set-stock-wizard-step', {
+          detail: { step: -1 }
+        }));
+      }
+    }, 200);
 
     // DOM'un render olması için bekle. Wizard geçişleri 400ms sürer.
     const waitTime = currentStep.waitMs ?? (currentStep.wizardStep !== undefined || currentStep.stockWizardStep !== undefined ? 600 : 300);
@@ -728,7 +737,7 @@ export function AppTour({
   return createPortal(
     <>
       {/* Spotlight */}
-      <SpotlightOverlay targetRect={targetRect} />
+      <SpotlightOverlay targetRect={targetRect} isStockWizard={currentStep.stockWizardStep !== undefined} />
 
       {/* Tooltip */}
       <div
@@ -737,7 +746,7 @@ export function AppTour({
           position: 'fixed',
           top: tooltipPos.top,
           left: tooltipPos.left,
-          zIndex: 9999,
+          zIndex: 10005,
           width: '100%',
           maxWidth: 340,
           opacity: visible && !isTransitioning ? 1 : 0,
